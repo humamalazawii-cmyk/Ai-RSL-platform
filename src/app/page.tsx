@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useState, useEffect } from "react";
 
 const SECTORS = [
   { name: "Grocery", nameAr: "بقالة", icon: "🏪" },
