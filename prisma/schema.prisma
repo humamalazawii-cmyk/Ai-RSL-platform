@@ -1,0 +1,600 @@
+// =============================================================
+// AI ERP Platform — Database Schema
+// Multi-tenant, IFRS-compliant, all-sector ERP
+// =============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================
+// MULTI-TENANCY & AUTH
+// =============================================================
+
+model Organization {
+  id            String   @id @default(cuid())
+  name          String
+  nameAr        String?  @map("name_ar")
+  sector        String   // grocery, gas_station, factory, clinic, etc.
+  scale         String   // micro, small, medium, large, enterprise
+  country       String   @default("IQ")
+  currency      String   @default("IQD")
+  fiscalYearStart Int    @default(1) // month number
+  timezone      String   @default("Asia/Baghdad")
+  logo          String?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  users           User[]
+  modules         OrganizationModule[]
+  accounts        Account[]
+  journalEntries  JournalEntry[]
+  contacts        Contact[]
+  products        Product[]
+  warehouses      Warehouse[]
+  costCenters     CostCenter[]
+  workflows       Workflow[]
+  flowcharts      Flowchart[]
+  fiscalPeriods   FiscalPeriod[]
+  currencies      CurrencyRate[]
+  auditLogs       AuditLog[]
+  departments     Department[]
+  employees       Employee[]
+  trainingPaths   TrainingPath[]
+  evaluationCycles EvaluationCycle[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String   @map("password_hash")
+  firstName      String   @map("first_name")
+  lastName       String   @map("last_name")
+  role           String   @default("user") // admin, accountant, manager, user
+  language       String   @default("ar")   // ar, en, ku, tr
+  isActive       Boolean  @default(true)
+  lastLoginAt    DateTime? @map("last_login_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organizationId String   @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  journalEntries JournalEntry[] @relation("CreatedBy")
+  approvals      JournalEntry[] @relation("ApprovedBy")
+  auditLogs      AuditLog[]
+
+  @@map("users")
+}
+
+// =============================================================
+// MODULE MANAGEMENT
+// =============================================================
+
+model OrganizationModule {
+  id         String   @id @default(cuid())
+  moduleKey  String   @map("module_key") // accounting, inventory, hr, etc.
+  isActive   Boolean  @default(true)
+  activatedAt DateTime @default(now()) @map("activated_at")
+  config     Json?    // module-specific configuration
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, moduleKey])
+  @@map("organization_modules")
+}
+
+// =============================================================
+// ACCOUNTING & FINANCE
+// =============================================================
+
+model Account {
+  id            String   @id @default(cuid())
+  code          String   // e.g. "1101", "4201"
+  name          String
+  nameAr        String?  @map("name_ar")
+  type          String   // asset, liability, equity, revenue, expense
+  subType       String?  @map("sub_type") // current_asset, fixed_asset, etc.
+  parentId      String?  @map("parent_id")
+  parent        Account? @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children      Account[] @relation("AccountHierarchy")
+  level         Int      @default(1)
+  isActive      Boolean  @default(true)
+  isPostable    Boolean  @default(true) @map("is_postable") // can post JE to this account
+  normalBalance String   @default("debit") @map("normal_balance") // debit or credit
+  currency      String?  // for foreign currency accounts
+  description   String?
+  tags          String[] // for custom grouping
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  debitLines  JournalEntryLine[] @relation("DebitAccount")
+  creditLines JournalEntryLine[] @relation("CreditAccount")
+
+  @@unique([organizationId, code])
+  @@index([organizationId, type])
+  @@map("accounts")
+}
+
+model FiscalPeriod {
+  id         String   @id @default(cuid())
+  name       String   // "January 2025", "Q1 2025"
+  startDate  DateTime @map("start_date")
+  endDate    DateTime @map("end_date")
+  status     String   @default("open") // open, closed, locked
+  closedById String?  @map("closed_by_id")
+  closedAt   DateTime? @map("closed_at")
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  journalEntries JournalEntry[]
+
+  @@unique([organizationId, startDate])
+  @@map("fiscal_periods")
+}
+
+model JournalEntry {
+  id            String   @id @default(cuid())
+  entryNumber   String   @map("entry_number") // auto-generated sequential
+  date          DateTime
+  description   String
+  descriptionAr String?  @map("description_ar")
+  reference     String?  // invoice number, receipt, etc.
+  type          String   @default("manual") // manual, auto, adjustment, closing, opening
+  status        String   @default("draft") // draft, pending, approved, posted, voided
+  totalDebit    Decimal  @default(0) @map("total_debit") @db.Decimal(18, 4)
+  totalCredit   Decimal  @default(0) @map("total_credit") @db.Decimal(18, 4)
+  attachments   String[] // file URLs
+  aiGenerated   Boolean  @default(false) @map("ai_generated")
+  aiConfidence  Float?   @map("ai_confidence") // 0-1 confidence score
+  postedAt      DateTime? @map("posted_at")
+  voidedAt      DateTime? @map("voided_at")
+  voidReason    String?  @map("void_reason")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  createdById    String @map("created_by_id")
+  createdBy      User   @relation("CreatedBy", fields: [createdById], references: [id])
+
+  approvedById   String? @map("approved_by_id")
+  approvedBy     User?   @relation("ApprovedBy", fields: [approvedById], references: [id])
+
+  fiscalPeriodId String? @map("fiscal_period_id")
+  fiscalPeriod   FiscalPeriod? @relation(fields: [fiscalPeriodId], references: [id])
+
+  costCenterId   String? @map("cost_center_id")
+  costCenter     CostCenter? @relation(fields: [costCenterId], references: [id])
+
+  lines          JournalEntryLine[]
+
+  @@index([organizationId, date])
+  @@index([organizationId, status])
+  @@index([organizationId, entryNumber])
+  @@map("journal_entries")
+}
+
+model JournalEntryLine {
+  id          String  @id @default(cuid())
+  lineNumber  Int     @map("line_number")
+  description String?
+  debitAmount  Decimal @default(0) @map("debit_amount") @db.Decimal(18, 4)
+  creditAmount Decimal @default(0) @map("credit_amount") @db.Decimal(18, 4)
+  currency     String?
+  exchangeRate Decimal? @map("exchange_rate") @db.Decimal(12, 6)
+
+  journalEntryId String @map("journal_entry_id")
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+
+  debitAccountId  String? @map("debit_account_id")
+  debitAccount    Account? @relation("DebitAccount", fields: [debitAccountId], references: [id])
+
+  creditAccountId String? @map("credit_account_id")
+  creditAccount   Account? @relation("CreditAccount", fields: [creditAccountId], references: [id])
+
+  @@map("journal_entry_lines")
+}
+
+model CostCenter {
+  id     String  @id @default(cuid())
+  code   String
+  name   String
+  nameAr String? @map("name_ar")
+  isActive Boolean @default(true)
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  journalEntries JournalEntry[]
+
+  @@unique([organizationId, code])
+  @@map("cost_centers")
+}
+
+model CurrencyRate {
+  id           String   @id @default(cuid())
+  fromCurrency String   @map("from_currency")
+  toCurrency   String   @map("to_currency")
+  rate         Decimal  @db.Decimal(12, 6)
+  date         DateTime
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, date])
+  @@map("currency_rates")
+}
+
+// =============================================================
+// CONTACTS (Customers, Vendors, Both)
+// =============================================================
+
+model Contact {
+  id          String  @id @default(cuid())
+  type        String  // customer, vendor, both
+  name        String
+  nameAr      String? @map("name_ar")
+  email       String?
+  phone       String?
+  address     String?
+  taxId       String? @map("tax_id")
+  creditLimit Decimal? @map("credit_limit") @db.Decimal(18, 4)
+  paymentTerms Int?   @map("payment_terms") // days
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  invoices    Invoice[]
+  purchases   PurchaseOrder[]
+
+  @@index([organizationId, type])
+  @@map("contacts")
+}
+
+// =============================================================
+// INVENTORY & PRODUCTS
+// =============================================================
+
+model Product {
+  id          String  @id @default(cuid())
+  sku         String
+  name        String
+  nameAr      String? @map("name_ar")
+  category    String?
+  type        String  @default("goods") // goods, service, consumable
+  unit        String  @default("pcs")   // pcs, kg, ltr, box, etc.
+  costMethod  String  @default("avco")  @map("cost_method") // avco, fifo, lifo
+  currentCost Decimal @default(0) @map("current_cost") @db.Decimal(18, 4)
+  salePrice   Decimal @default(0) @map("sale_price") @db.Decimal(18, 4)
+  reorderLevel Int?   @map("reorder_level")
+  isActive    Boolean @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  stockMovements StockMovement[]
+  invoiceLines   InvoiceLine[]
+
+  @@unique([organizationId, sku])
+  @@map("products")
+}
+
+model Warehouse {
+  id       String  @id @default(cuid())
+  code     String
+  name     String
+  nameAr   String? @map("name_ar")
+  address  String?
+  isActive Boolean @default(true)
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  stockMovements StockMovement[]
+
+  @@unique([organizationId, code])
+  @@map("warehouses")
+}
+
+model StockMovement {
+  id          String   @id @default(cuid())
+  type        String   // in, out, transfer, adjustment
+  quantity    Decimal  @db.Decimal(18, 4)
+  unitCost    Decimal  @map("unit_cost") @db.Decimal(18, 4)
+  totalCost   Decimal  @map("total_cost") @db.Decimal(18, 4)
+  reference   String?
+  date        DateTime
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  productId   String @map("product_id")
+  product     Product @relation(fields: [productId], references: [id])
+
+  warehouseId String @map("warehouse_id")
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  organizationId String @map("organization_id")
+
+  @@index([productId, date])
+  @@map("stock_movements")
+}
+
+// =============================================================
+// SALES & INVOICING
+// =============================================================
+
+model Invoice {
+  id           String   @id @default(cuid())
+  invoiceNumber String  @map("invoice_number")
+  type         String   @default("sales") // sales, purchase, credit_note, debit_note
+  date         DateTime
+  dueDate      DateTime? @map("due_date")
+  status       String   @default("draft") // draft, sent, paid, partial, overdue, cancelled
+  subtotal     Decimal  @default(0) @db.Decimal(18, 4)
+  taxAmount    Decimal  @default(0) @map("tax_amount") @db.Decimal(18, 4)
+  totalAmount  Decimal  @default(0) @map("total_amount") @db.Decimal(18, 4)
+  paidAmount   Decimal  @default(0) @map("paid_amount") @db.Decimal(18, 4)
+  notes        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  contactId    String @map("contact_id")
+  contact      Contact @relation(fields: [contactId], references: [id])
+
+  organizationId String @map("organization_id")
+
+  lines        InvoiceLine[]
+
+  @@index([organizationId, date])
+  @@index([organizationId, status])
+  @@map("invoices")
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  lineNumber  Int     @map("line_number")
+  description String?
+  quantity    Decimal @db.Decimal(18, 4)
+  unitPrice   Decimal @map("unit_price") @db.Decimal(18, 4)
+  discount    Decimal @default(0) @db.Decimal(18, 4)
+  taxRate     Decimal @default(0) @map("tax_rate") @db.Decimal(5, 2)
+  totalAmount Decimal @map("total_amount") @db.Decimal(18, 4)
+
+  invoiceId   String @map("invoice_id")
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  productId   String? @map("product_id")
+  product     Product? @relation(fields: [productId], references: [id])
+
+  @@map("invoice_lines")
+}
+
+// =============================================================
+// PROCUREMENT
+// =============================================================
+
+model PurchaseOrder {
+  id          String   @id @default(cuid())
+  poNumber    String   @map("po_number")
+  date        DateTime
+  status      String   @default("draft") // draft, approved, received, cancelled
+  totalAmount Decimal  @default(0) @map("total_amount") @db.Decimal(18, 4)
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  contactId   String @map("contact_id")
+  contact     Contact @relation(fields: [contactId], references: [id])
+
+  organizationId String @map("organization_id")
+
+  @@index([organizationId, date])
+  @@map("purchase_orders")
+}
+
+// =============================================================
+// HR & PEOPLE
+// =============================================================
+
+model Department {
+  id     String  @id @default(cuid())
+  name   String
+  nameAr String? @map("name_ar")
+  parentId String? @map("parent_id")
+  parent   Department? @relation("DeptHierarchy", fields: [parentId], references: [id])
+  children Department[] @relation("DeptHierarchy")
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  employees Employee[]
+
+  @@map("departments")
+}
+
+model Employee {
+  id          String   @id @default(cuid())
+  employeeNo  String   @map("employee_no")
+  firstName   String   @map("first_name")
+  lastName    String   @map("last_name")
+  email       String?
+  phone       String?
+  position    String?
+  hireDate    DateTime @map("hire_date")
+  salary      Decimal? @db.Decimal(18, 4)
+  status      String   @default("active") // active, inactive, terminated
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  departmentId   String? @map("department_id")
+  department     Department? @relation(fields: [departmentId], references: [id])
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  trainingProgress TrainingProgress[]
+  evaluations      Evaluation[]
+
+  @@unique([organizationId, employeeNo])
+  @@map("employees")
+}
+
+// =============================================================
+// AI SMART TRAINING
+// =============================================================
+
+model TrainingPath {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  targetRole  String? @map("target_role")
+  modules     Json    // array of training modules
+  aiGenerated Boolean @default(true) @map("ai_generated")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  progress TrainingProgress[]
+
+  @@map("training_paths")
+}
+
+model TrainingProgress {
+  id              String   @id @default(cuid())
+  completedModules Json    @default("[]") @map("completed_modules")
+  quizScores      Json     @default("[]") @map("quiz_scores")
+  overallScore    Float?   @map("overall_score")
+  status          String   @default("in_progress") // in_progress, completed, certified
+  startedAt       DateTime @default(now()) @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+
+  employeeId     String @map("employee_id")
+  employee       Employee @relation(fields: [employeeId], references: [id])
+
+  trainingPathId String @map("training_path_id")
+  trainingPath   TrainingPath @relation(fields: [trainingPathId], references: [id])
+
+  @@unique([employeeId, trainingPathId])
+  @@map("training_progress")
+}
+
+// =============================================================
+// AI SMART EVALUATION
+// =============================================================
+
+model EvaluationCycle {
+  id        String   @id @default(cuid())
+  name      String
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  status    String   @default("active") // active, completed, archived
+  type      String   @default("annual") // annual, quarterly, 360
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  evaluations Evaluation[]
+
+  @@map("evaluation_cycles")
+}
+
+model Evaluation {
+  id            String   @id @default(cuid())
+  overallScore  Float?   @map("overall_score")
+  kpiScores     Json?    @map("kpi_scores")
+  strengths     String[]
+  improvements  String[]
+  aiSummary     String?  @map("ai_summary")
+  aiRecommendations Json? @map("ai_recommendations")
+  status        String   @default("pending") // pending, self_review, manager_review, completed
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  employeeId    String @map("employee_id")
+  employee      Employee @relation(fields: [employeeId], references: [id])
+
+  cycleId       String @map("cycle_id")
+  cycle         EvaluationCycle @relation(fields: [cycleId], references: [id])
+
+  @@unique([employeeId, cycleId])
+  @@map("evaluations")
+}
+
+// =============================================================
+// AI WORKFLOW & FLOWCHARTS
+// =============================================================
+
+model Workflow {
+  id          String  @id @default(cuid())
+  name        String
+  nameAr      String? @map("name_ar")
+  module      String  // accounting, inventory, hr, etc.
+  trigger     String  // on_create, on_amount_threshold, scheduled
+  conditions  Json    // rule conditions
+  actions     Json    // what to do when triggered
+  isActive    Boolean @default(true)
+  aiGenerated Boolean @default(true) @map("ai_generated")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("workflows")
+}
+
+model Flowchart {
+  id          String  @id @default(cuid())
+  name        String
+  nameAr      String? @map("name_ar")
+  module      String
+  description String?
+  nodes       Json    // array of nodes {id, type, label, position}
+  edges       Json    // array of edges {id, source, target, label}
+  aiGenerated Boolean @default(true) @map("ai_generated")
+  aiPrompt    String? @map("ai_prompt") // original user prompt
+  version     Int     @default(1)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@map("flowcharts")
+}
+
+// =============================================================
+// AUDIT & SECURITY
+// =============================================================
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String   // create, update, delete, login, approve, void
+  entity     String   // journal_entry, invoice, account, etc.
+  entityId   String   @map("entity_id")
+  changes    Json?    // {field: {old, new}}
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  userId     String @map("user_id")
+  user       User   @relation(fields: [userId], references: [id])
+
+  organizationId String @map("organization_id")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@index([organizationId, entity, createdAt])
+  @@index([organizationId, userId, createdAt])
+  @@map("audit_logs")
+}

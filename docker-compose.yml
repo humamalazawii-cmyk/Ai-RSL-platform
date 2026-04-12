@@ -1,0 +1,24 @@
+version: "3.8"
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: erp
+      POSTGRES_PASSWORD: erp_dev_2026
+      POSTGRES_DB: ai_erp
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://erp:erp_dev_2026@db:5432/ai_erp
+    depends_on:
+      - db
+
+volumes:
+  pgdata:
