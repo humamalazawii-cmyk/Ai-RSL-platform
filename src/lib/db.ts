@@ -14,7 +14,7 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 // CONSTANTS
 // ============================================
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me-in-production-please';
-const INVESTOR_PASS = process.env.INVESTOR_PASSWORD || 'RSL2026';
+const INVESTOR_PASS = () => process.env.INVESTOR_PASSWORD || 'RSL2026';
 
 // ============================================
 // PASSWORD HELPERS
@@ -28,7 +28,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export function checkInvestorPassword(password: string): boolean {
-  return password === INVESTOR_PASS;
+  return password === INVESTOR_PASS();
 }
 
 // ============================================
