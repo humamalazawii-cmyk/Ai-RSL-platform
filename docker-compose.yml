@@ -1,24 +1,22 @@
-version: "3.8"
+version: '3.8'
 services:
-  db:
+  postgres:
     image: postgres:16-alpine
+    container_name: rsl-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: erp
-      POSTGRES_PASSWORD: erp_dev_2026
-      POSTGRES_DB: ai_erp
+      POSTGRES_USER: rsl
+      POSTGRES_PASSWORD: rsl_dev_password
+      POSTGRES_DB: rsl_ai
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
-      - pgdata:/var/lib/postgresql/data
-
-  app:
-    build: .
-    ports:
-      - "3000:3000"
-    environment:
-      DATABASE_URL: postgresql://erp:erp_dev_2026@db:5432/ai_erp
-    depends_on:
-      - db
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U rsl']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  pgdata:
+  postgres_data:

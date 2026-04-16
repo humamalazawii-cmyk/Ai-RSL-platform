@@ -2,6 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  [dir="rtl"] { font-family: "Noto Sans Arabic", "Inter", sans-serif; }
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap');
+
+* { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+html, body { direction: rtl; margin: 0; padding: 0; }
+.ltr { direction: ltr; }
+
+body {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  color: #F1F5F9;
+  min-height: 100vh;
 }
+
+.card {
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+  border-radius: 16px;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #0D9488 0%, #14B8A6 50%, #D4A017 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #0D9488, #14B8A6);
+  color: white;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+.btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(13,148,136,0.4); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-ghost {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(148,163,184,0.2);
+  color: #F1F5F9;
+  padding: 10px 24px;
+  border-radius: 10px;
+  transition: all 0.2s;
+  display: inline-block;
+  text-decoration: none;
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.1); }
+
+.tabular { font-variant-numeric: tabular-nums; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: rgba(15,23,42,0.5); }
+::-webkit-scrollbar-thumb { background: rgba(13,148,136,0.5); border-radius: 4px; }

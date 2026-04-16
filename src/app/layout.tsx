@@ -1,17 +1,16 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import './globals.css';
+import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "AI RSL Platform",
-  description: "AI-Powered Universal ERP — Every sector, every scale",
+  title: 'RSL-AI — الرافدين للحياة الذكية',
+  description: 'نظام إدارة أعمال متكامل بمحرك مراقبة ذكي غير مرئي',
+  robots: 'noindex, nofollow',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" dir="ltr">
-      <body className="min-h-screen bg-gray-50 text-gray-900 antialiased">
-        {children}
-      </body>
+    <html lang="ar" dir="rtl">
+      <body>{children}</body>
     </html>
   );
 }

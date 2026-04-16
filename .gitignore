@@ -1,8 +1,12 @@
-node_modules/
-.next/
+node_modules
+.next
 .env
 .env.local
+.env.production
 *.log
-dist/
 .DS_Store
-prisma/*.db
+.vscode
+dist
+build
+*.tsbuildinfo
+next-env.d.ts.backup
