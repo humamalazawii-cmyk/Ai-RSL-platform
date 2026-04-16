@@ -10,3 +10,15 @@ dist
 build
 *.tsbuildinfo
 next-env.d.ts.backup
+
+# أدوات محلية - لا ترفع
+cloud-sql-proxy
+create-admin.js
+*.pw
+.env.local
+
+# أدوات محلية - لا ترفع
+cloud-sql-proxy
+create-admin.js
+*.pw
+.env.local
