@@ -148,7 +148,6 @@ export default function LandingPage() {
             {loading ? 'جاري الدخول...' : 'دخول'}
           </button>
           <p className="text-xs text-slate-500 text-center pt-2">
-            الافتراضي: admin@rsl-ai.com / RSL-Admin-2026
           </p>
         </form>
       </AuthBox>
