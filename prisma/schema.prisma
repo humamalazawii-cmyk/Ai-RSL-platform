@@ -14,28 +14,30 @@ datasource db {
 // INVESTOR TRACKING
 // ============================================
 model Visitor {
-  id           Int         @id @default(autoincrement())
-  name         String
-  email        String      @unique
-  phone        String?
-  company      String?
-  ipAddress    String?
-  userAgent    String?     @db.Text
-  firstVisit   DateTime    @default(now())
-  lastVisit    DateTime    @default(now())
-  totalVisits  Int         @default(1)
-  pageViews    PageView[]
+  id          Int        @id @default(autoincrement())
+  name        String
+  email       String     @unique
+  phone       String?
+  company     String?
+  ipAddress   String?
+  userAgent   String?    @db.Text
+  firstVisit  DateTime   @default(now())
+  lastVisit   DateTime   @default(now())
+  totalVisits Int        @default(1)
+  pageViews   PageView[]
+
   @@index([email])
   @@index([lastVisit])
 }
 
 model PageView {
-  id              Int       @id @default(autoincrement())
+  id              Int      @id @default(autoincrement())
   visitorId       Int
-  visitor         Visitor   @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+  visitor         Visitor  @relation(fields: [visitorId], references: [id], onDelete: Cascade)
   path            String
-  timestamp       DateTime  @default(now())
-  durationSeconds Int       @default(0)
+  timestamp       DateTime @default(now())
+  durationSeconds Int      @default(0)
+
   @@index([visitorId])
   @@index([path])
 }
@@ -44,35 +46,48 @@ model PageView {
 // MULTI-TENANT - Organizations
 // ============================================
 model Organization {
-  id              String    @id @default(cuid())
+  id              String   @id @default(cuid())
   name            String
   sector          String?
   subSector       String?
   employeeCount   String?
-  country         String    @default("IQ")
-  baseCurrency    String    @default("IQD")
-  accountStandard String    @default("IRAQI") // IRAQI or IFRS
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  country         String   @default("IQ")
+  baseCurrency    String   @default("IQD")
+  accountStandard String   @default("IRAQI")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  users           User[]
-  accounts        Account[]
-  journalEntries  JournalEntry[]
+  users          User[]
+  accounts       Account[]
+  journalEntries JournalEntry[]
 }
 
 // ============================================
 // USERS & AUTH
 // ============================================
 model User {
-  id             String       @id @default(cuid())
-  email          String       @unique
+  id             String        @id @default(cuid())
+  email          String        @unique
   passwordHash   String
   name           String
-  role           Role         @default(USER)
+  role           Role          @default(USER)
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime      @default(now())
   lastLogin      DateTime?
+
+  passwordChangedAt   DateTime?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  mfaEnabled     Boolean   @default(false)
+  mfaSecret      String?
+  mfaBackupCodes String[]  @default([])
+  mfaEnforcedAt  DateTime?
+
+  passwordResetTokens PasswordResetToken[]
+  authEvents          AuthEvent[]
+
   @@index([email])
   @@index([organizationId])
 }
@@ -86,24 +101,82 @@ enum Role {
 }
 
 // ============================================
+// SECURITY: Password Reset Tokens
+// ============================================
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  createdIp String?
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([tokenHash])
+}
+
+// ============================================
+// SECURITY: Auth Events (Audit Log)
+// ============================================
+model AuthEvent {
+  id        String        @id @default(cuid())
+  userId    String?
+  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  email     String?
+  eventType AuthEventType
+  success   Boolean
+  ip        String?
+  userAgent String?       @db.Text
+  metadata  Json?
+  createdAt DateTime      @default(now())
+
+  @@index([userId])
+  @@index([email])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([ip])
+  @@index([success])
+}
+
+enum AuthEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  LOGOUT
+  PASSWORD_CHANGED
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+  MFA_ENABLED
+  MFA_DISABLED
+  MFA_CHALLENGE_SUCCESS
+  MFA_CHALLENGE_FAILURE
+  ACCOUNT_LOCKED
+  ACCOUNT_UNLOCKED
+  SUSPICIOUS_ACTIVITY
+  RATE_LIMIT_EXCEEDED
+}
+
+// ============================================
 // ACCOUNTING - Chart of Accounts
 // ============================================
 model Account {
-  id             String       @id @default(cuid())
+  id             String        @id @default(cuid())
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   code           String
   nameAr         String
   nameEn         String?
   type           AccountType
   parentId       String?
-  parent         Account?     @relation("AccountHierarchy", fields: [parentId], references: [id])
-  children       Account[]    @relation("AccountHierarchy")
-  level          Int          @default(1)
-  isActive       Boolean      @default(true)
-  currency       String       @default("IQD")
-  balance        Decimal      @default(0) @db.Decimal(18, 3)
-  createdAt      DateTime     @default(now())
+  parent         Account?      @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children       Account[]     @relation("AccountHierarchy")
+  level          Int           @default(1)
+  isActive       Boolean       @default(true)
+  currency       String        @default("IQD")
+  balance        Decimal       @default(0) @db.Decimal(18, 3)
+  createdAt      DateTime      @default(now())
   journalLines   JournalLine[]
 
   @@unique([organizationId, code])
@@ -123,20 +196,20 @@ enum AccountType {
 // ACCOUNTING - Journal Entries (CJAE Engine)
 // ============================================
 model JournalEntry {
-  id             String       @id @default(cuid())
+  id             String        @id @default(cuid())
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   entryNumber    String
-  entryType      String       @default("JV") // RV/PV/JV/BD/BW/OE/CL/AJ
+  entryType      String        @default("JV")
   entryDate      DateTime
-  description    String?      @db.Text
-  status         EntryStatus  @default(DRAFT)
-  totalDebit     Decimal      @default(0) @db.Decimal(18, 3)
-  totalCredit    Decimal      @default(0) @db.Decimal(18, 3)
+  description    String?       @db.Text
+  status         EntryStatus   @default(DRAFT)
+  totalDebit     Decimal       @default(0) @db.Decimal(18, 3)
+  totalCredit    Decimal       @default(0) @db.Decimal(18, 3)
   postedAt       DateTime?
   postedBy       String?
   reversalOf     String?
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime      @default(now())
   lines          JournalLine[]
 
   @@unique([organizationId, entryNumber])
@@ -153,36 +226,36 @@ enum EntryStatus {
 }
 
 model JournalLine {
-  id             String       @id @default(cuid())
-  entryId        String
-  entry          JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  accountId      String
-  account        Account      @relation(fields: [accountId], references: [id])
-  lineNumber     Int
-  description    String?
-  debit          Decimal      @default(0) @db.Decimal(18, 3)
-  credit         Decimal      @default(0) @db.Decimal(18, 3)
-  currency       String       @default("IQD")
-  exchangeRate   Decimal      @default(1) @db.Decimal(18, 6)
-  debitBase      Decimal      @default(0) @db.Decimal(18, 3)
-  creditBase     Decimal      @default(0) @db.Decimal(18, 3)
+  id           String       @id @default(cuid())
+  entryId      String
+  entry        JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountId    String
+  account      Account      @relation(fields: [accountId], references: [id])
+  lineNumber   Int
+  description  String?
+  debit        Decimal      @default(0) @db.Decimal(18, 3)
+  credit       Decimal      @default(0) @db.Decimal(18, 3)
+  currency     String       @default("IQD")
+  exchangeRate Decimal      @default(1) @db.Decimal(18, 6)
+  debitBase    Decimal      @default(0) @db.Decimal(18, 3)
+  creditBase   Decimal      @default(0) @db.Decimal(18, 3)
 
   @@index([entryId])
   @@index([accountId])
 }
 
 // ============================================
-// ENGINES: COE + CJAE + CUOM (schemas for future)
+// ENGINES: COE + CJAE + CUOM
 // ============================================
 model OperationLog {
-  id             String    @id @default(cuid())
+  id             String   @id @default(cuid())
   organizationId String
   operationType  String
   module         String
   userId         String?
   payload        Json
-  status         String    // PENDING / APPROVED / REJECTED / ROLLED_BACK
-  executedAt     DateTime  @default(now())
+  status         String
+  executedAt     DateTime @default(now())
   durationMs     Int?
 
   @@index([organizationId])
@@ -191,11 +264,11 @@ model OperationLog {
 }
 
 model UoMCategory {
-  id          String           @id @default(cuid())
-  nameAr      String
-  nameEn      String?
-  baseUnit    String
-  units       UnitOfMeasure[]
+  id       String          @id @default(cuid())
+  nameAr   String
+  nameEn   String?
+  baseUnit String
+  units    UnitOfMeasure[]
 }
 
 model UnitOfMeasure {
