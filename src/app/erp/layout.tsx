@@ -8,30 +8,74 @@ export default async function ERPLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen">
-      <aside className="fixed top-0 right-0 h-full w-64 bg-slate-900/80 backdrop-blur-xl border-l border-slate-800 overflow-y-auto">
+      <aside className="fixed top-0 right-0 h-full w-64 bg-slate-900/80 backdrop-blur-xl border-l border-slate-800 overflow-y-auto flex flex-col">
         <div className="p-6 border-b border-slate-800">
           <Link href="/erp" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm"
-              style={{background:'linear-gradient(135deg,#0D9488,#D4A017)'}}>RSL</div>
+            <div
+              className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm"
+              style={{ background: 'linear-gradient(135deg,#0D9488,#D4A017)' }}
+            >
+              RSL
+            </div>
             <div>
               <div className="font-bold">RSL-AI ERP</div>
               <div className="text-xs text-slate-400">النظام الداخلي</div>
             </div>
           </Link>
         </div>
-        <nav className="p-4 space-y-1">
-          <div className="text-xs text-slate-500 uppercase tracking-wider px-3 mb-2 font-semibold">الرئيسية</div>
-          <Link href="/erp" className="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800/50">🏠 لوحة القيادة</Link>
-          <div className="text-xs text-slate-500 uppercase tracking-wider px-3 mb-2 font-semibold mt-6">المحاسبة</div>
-          <Link href="/erp/accounts" className="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800/50">📊 دليل الحسابات</Link>
-          <Link href="/erp/journal-entries" className="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800/50">📝 القيود اليومية</Link>
+
+        <nav className="p-4 space-y-1 flex-1">
+          {/* الرئيسية */}
+          <div className="text-xs text-slate-500 uppercase tracking-wider px-3 mb-2 font-semibold">
+            الرئيسية
+          </div>
+          <Link
+            href="/erp"
+            className="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800/50 transition"
+          >
+            🏠 لوحة القيادة
+          </Link>
+
+          {/* المحاسبة */}
+          <div className="text-xs text-slate-500 uppercase tracking-wider px-3 mb-2 font-semibold mt-6">
+            المحاسبة
+          </div>
+          <Link
+            href="/erp/accounts"
+            className="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800/50 transition"
+          >
+            📊 دليل الحسابات
+          </Link>
+          <Link
+            href="/erp/journal-entries"
+            className="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800/50 transition"
+          >
+            📝 القيود اليومية
+          </Link>
+
+          {/* الإعدادات */}
+          <div className="text-xs text-slate-500 uppercase tracking-wider px-3 mb-2 font-semibold mt-6">
+            الإعدادات
+          </div>
+          <Link
+            href="/erp/settings/change-password"
+            className="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800/50 transition"
+          >
+            🔐 تغيير كلمة المرور
+          </Link>
         </nav>
-        <div className="p-4 border-t border-slate-800 mt-auto">
+
+        {/* User info + Logout */}
+        <div className="p-4 border-t border-slate-800">
+          <div className="px-3 py-2 mb-2 text-xs text-slate-400 truncate">
+            {session.email}
+          </div>
           <form action="/api/auth/logout" method="POST">
             <button className="w-full btn-ghost text-sm">خروج</button>
           </form>
         </div>
       </aside>
+
       <main className="flex-1 mr-64 p-8">{children}</main>
     </div>
   );
