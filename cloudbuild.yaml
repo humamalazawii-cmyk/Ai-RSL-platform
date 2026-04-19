@@ -33,7 +33,7 @@ steps:
       - '--max-instances=10'
       - '--add-cloudsql-instances=rsl-sys:me-central1:rsl-db'
       - '--set-env-vars=NODE_ENV=production'
-      - '--set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,INVESTOR_PASSWORD=investor-password:latest'
+      - '--set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,INVESTOR_PASSWORD=investor-password:latest,UPSTASH_REDIS_REST_URL=upstash-redis-url:latest,UPSTASH_REDIS_REST_TOKEN=upstash-redis-token:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
