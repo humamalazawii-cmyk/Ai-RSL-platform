@@ -9,6 +9,48 @@ import {
   PASSWORD_POLICY,
 } from '@/lib/password-policy';
 
+// Eye icon (show)
+function EyeIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+// Eye-off icon (hide)
+function EyeOffIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+      <line x1="2" x2="22" y1="2" y2="22" />
+    </svg>
+  );
+}
+
 export default function ChangePasswordPage() {
   const router = useRouter();
 
@@ -24,19 +66,16 @@ export default function ChangePasswordPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // Real-time password strength
   const strength = useMemo(
     () => (newPassword ? getPasswordStrength(newPassword) : null),
     [newPassword]
   );
 
-  // Real-time policy validation
   const validation = useMemo(
     () => (newPassword ? validatePassword(newPassword) : null),
     [newPassword]
   );
 
-  // Policy checks (for checklist UI)
   const checks = useMemo(() => {
     if (!newPassword) return [];
     return [
@@ -67,7 +106,6 @@ export default function ChangePasswordPage() {
     ];
   }, [newPassword]);
 
-  // Strength bar color
   const strengthColor = useMemo(() => {
     if (!strength) return 'bg-slate-700';
     if (strength.score < 20) return 'bg-red-500';
@@ -77,7 +115,6 @@ export default function ChangePasswordPage() {
     return 'bg-emerald-500';
   }, [strength]);
 
-  // Form validity
   const passwordsMatch =
     confirmPassword.length > 0 && newPassword === confirmPassword;
   const canSubmit =
@@ -86,7 +123,6 @@ export default function ChangePasswordPage() {
     passwordsMatch &&
     !loading;
 
-  // Submit handler
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError('');
@@ -109,11 +145,9 @@ export default function ChangePasswordPage() {
         return;
       }
 
-      // Success!
       setSuccess(true);
       setLoading(false);
 
-      // Redirect after 2 seconds
       setTimeout(() => {
         router.push('/erp');
         router.refresh();
@@ -124,7 +158,6 @@ export default function ChangePasswordPage() {
     }
   }
 
-  // Success screen
   if (success) {
     return (
       <div className="max-w-2xl mx-auto">
@@ -177,7 +210,7 @@ export default function ChangePasswordPage() {
               type={showCurrent ? 'text' : 'password'}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition ltr"
+              className="w-full pr-4 pl-12 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition ltr"
               placeholder="أدخل كلمة المرور الحالية"
               autoComplete="current-password"
               required
@@ -185,15 +218,15 @@ export default function ChangePasswordPage() {
             <button
               type="button"
               onClick={() => setShowCurrent(!showCurrent)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition text-sm"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-teal-400 transition p-1"
               tabIndex={-1}
+              aria-label={showCurrent ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
             >
-              {showCurrent ? '🙈' : '👁'}
+              {showCurrent ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
         </div>
 
-        {/* Divider */}
         <div className="border-t border-slate-700/50"></div>
 
         {/* New Password */}
@@ -206,7 +239,7 @@ export default function ChangePasswordPage() {
               type={showNew ? 'text' : 'password'}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition ltr"
+              className="w-full pr-4 pl-12 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition ltr"
               placeholder="أدخل كلمة مرور قوية"
               autoComplete="new-password"
               required
@@ -214,10 +247,11 @@ export default function ChangePasswordPage() {
             <button
               type="button"
               onClick={() => setShowNew(!showNew)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition text-sm"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-teal-400 transition p-1"
               tabIndex={-1}
+              aria-label={showNew ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
             >
-              {showNew ? '🙈' : '👁'}
+              {showNew ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
 
@@ -279,7 +313,7 @@ export default function ChangePasswordPage() {
               type={showConfirm ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition ltr"
+              className="w-full pr-4 pl-12 py-3 bg-slate-800/50 border border-slate-700 rounded-lg text-slate-100 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition ltr"
               placeholder="أعد إدخال كلمة المرور"
               autoComplete="new-password"
               required
@@ -287,14 +321,14 @@ export default function ChangePasswordPage() {
             <button
               type="button"
               onClick={() => setShowConfirm(!showConfirm)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition text-sm"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-teal-400 transition p-1"
               tabIndex={-1}
+              aria-label={showConfirm ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
             >
-              {showConfirm ? '🙈' : '👁'}
+              {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
 
-          {/* Match indicator */}
           {confirmPassword && (
             <div
               className={`mt-2 text-xs ${
@@ -336,34 +370,12 @@ export default function ChangePasswordPage() {
           </button>
           <Link
             href="/erp"
-            className="btn-ghost flex items-center justify-center"
+            className="btn-ghost flex items-center justify-center px-8"
           >
             إلغاء
           </Link>
         </div>
       </form>
-
-      {/* Security Tips */}
-      <div
-        className="card p-6 mt-6"
-        style={{
-          background:
-            'linear-gradient(135deg, rgba(13,148,136,0.08), rgba(212,160,23,0.08))',
-        }}
-      >
-        <h3 className="font-bold mb-3 flex items-center gap-2">
-          <span>💡</span>
-          <span>نصائح أمنية</span>
-        </h3>
-        <ul className="text-sm text-slate-300 space-y-2 leading-relaxed">
-          <li>
-            • استخدم مدير كلمات مرور (مثل Bitwarden) لحفظ كلمات معقدة وفريدة
-          </li>
-          <li>• لا تعيد استخدام كلمات المرور بين الحسابات المختلفة</li>
-          <li>• تجنّب المعلومات الشخصية (اسمك، تاريخ ميلادك، أرقام الهاتف)</li>
-          <li>• غيّر كلمة المرور فوراً إذا اشتبهت بأنها سُرّبت</li>
-        </ul>
-      </div>
     </div>
   );
 }
