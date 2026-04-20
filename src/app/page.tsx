@@ -149,6 +149,9 @@ export default function LandingPage() {
             {loading ? 'جاري الدخول...' : 'دخول'}
           </button>
           <p className="text-xs text-slate-500 text-center pt-2">
+            <Link href="/auth/forgot-password" className="text-slate-400 hover:text-teal-400 transition">
+              نسيت كلمة المرور؟
+            </Link>
           </p>
         </form>
       </AuthBox>
