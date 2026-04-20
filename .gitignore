@@ -15,10 +15,8 @@ next-env.d.ts.backup
 cloud-sql-proxy
 create-admin.js
 *.pw
-.env.local
 
-# أدوات محلية - لا ترفع
-cloud-sql-proxy
-create-admin.js
-*.pw
-.env.local
+
+# Local backup files (from refactoring)
+*.backup
+*.before-*
