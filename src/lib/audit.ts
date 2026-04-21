@@ -1,4 +1,90 @@
+// ============================================
+// MFA Event Helpers
+// ============================================
+
 /**
+ * Log MFA being enabled (user activated 2FA).
+ */
+export async function logMFAEnabled(
+  userId: string,
+  email: string,
+  ip?: string | null,
+  userAgent?: string | null,
+  metadata?: Record<string, unknown>
+) {
+  return logAuthEvent({
+    eventType: AuthEventType.MFA_ENABLED,
+    success: true,
+    userId,
+    email,
+    ip,
+    userAgent,
+    metadata,
+  });
+}
+
+/**
+ * Log MFA being disabled (user removed 2FA).
+ */
+export async function logMFADisabled(
+  userId: string,
+  email: string,
+  ip?: string | null,
+  userAgent?: string | null,
+  metadata?: Record<string, unknown>
+) {
+  return logAuthEvent({
+    eventType: AuthEventType.MFA_DISABLED,
+    success: true,
+    userId,
+    email,
+    ip,
+    userAgent,
+    metadata,
+  });
+}
+
+/**
+ * Log successful MFA challenge during login.
+ */
+export async function logMFAChallengeSuccess(
+  userId: string,
+  email: string,
+  ip?: string | null,
+  userAgent?: string | null,
+  metadata?: Record<string, unknown>
+) {
+  return logAuthEvent({
+    eventType: AuthEventType.MFA_CHALLENGE_SUCCESS,
+    success: true,
+    userId,
+    email,
+    ip,
+    userAgent,
+    metadata,
+  });
+}
+
+/**
+ * Log failed MFA challenge (wrong code).
+ */
+export async function logMFAChallengeFailure(
+  userId: string,
+  email: string,
+  ip?: string | null,
+  userAgent?: string | null,
+  metadata?: Record<string, unknown>
+) {
+  return logAuthEvent({
+    eventType: AuthEventType.MFA_CHALLENGE_FAILURE,
+    success: false,
+    userId,
+    email,
+    ip,
+    userAgent,
+    metadata,
+  });
+}/**
  * RSL-AI Audit Logger
  *
  * Records authentication & security events to the AuthEvent table.
