@@ -47,6 +47,64 @@
 
 ---
 
+### 🗓️ 2026-04-21 — Phase 3 COMPLETE (Login History UI)
+
+**Duration:** ~90 minutes | **Commits:** 2 | **Status:** ✅ DEPLOYED & TESTED
+
+#### What was built
+- `GET /api/auth/login-history` — rate-limited, session-protected endpoint
+- Returns user events + summary stats (total, success, failure)
+- Optional `?limit` query param (default 50, max 200)
+- `/erp/settings/login-history` page (RTL Arabic)
+- 3 summary cards (total, successful, failed logins)
+- Events table with badges (14 event types Arabic-localized)
+- User-Agent parsing (browser + OS detection)
+- Filter dropdown by event type
+- Refresh button
+- CSV export with UTF-8 BOM (Arabic Excel support)
+
+#### Decisions made
+- **Built on existing helpers:** Used `getUserAuthHistory()` from audit.ts (no rebuild)
+- **Dark theme:** Matched ERP design (slate-900 bg, slate-800 cards) — fixed muted text visibility
+- **Back link:** `/erp` (dashboard) instead of non-existent `/erp/settings`
+- **Session-only access:** User sees ONLY their own history (where: { userId })
+- **Limit cap:** 200 max to prevent DB overload
+
+#### Challenges resolved
+- **TS error in EVENT_CONFIG:** Generic `Record<...>` lost the `<` during paste (Markdown interpretation). Fixed with sed.
+- **Hard-to-read text:** Initial `#64748B` invisible on dark background. Replaced 15 colors with darker theme.
+- **404 on back link:** `/erp/settings` doesn't exist as a page. Changed to `/erp`.
+
+#### Files created/modified
+- `src/app/api/auth/login-history/route.ts` (132 lines, NEW)
+- `src/app/erp/settings/login-history/page.tsx` (545 lines, NEW)
+
+#### End-to-end test results
+- Login as humamalazawii@gmail.com ✅
+- Page loads with 8 events visible ✅
+- Summary cards: 8 total, 6 success, 0 failure ✅
+- Badges Arabic-localized correctly ✅
+- User-Agent shows "Edge على Windows 10/11" ✅
+- Dark theme readable ✅
+- Back link works ✅
+
+#### Commits
+- `c2382c0` feat(auth): Phase 3 — Login History UI
+- `4c8247a` fix(login-history): dark theme + correct back link
+
+#### Deploy info
+- Build 1: `e01d5649-...` SUCCESS (4 min 19 sec) → revision rsl-ai-00026-p68
+- Build 2: `eb229f86-...` SUCCESS (~3 min) → latest revision
+
+#### Next session pickup
+1. Update Roadmap Excel (mark Phase 3 ✅ + add new tasks)
+2. **Next phase options:**
+   - Phase 4: MFA / TOTP (Google Authenticator)
+   - COE Engine (build the system "brain")
+   - Build /erp/settings hub page (so back link makes more sense)
+
+---
+
 ### 🗓️ 2026-04-20 — Phase 2C COMPLETE (Forgot Password)
 
 **Duration:** ~3 hours | **Commits:** 6 | **Status:** ✅ DEPLOYED & TESTED
@@ -109,13 +167,6 @@
 - Cloud Run revision: `rsl-ai-00024-7qm`
 - Status: SUCCESS
 
-#### Next session pickup
-1. **Cleanup:** Delete test user `humamalazawii@gmail.com` from DB
-2. **Next phase options:**
-   - Phase 3: Login History UI (recommended next)
-   - Phase 4: MFA (TOTP via Google Authenticator)
-   - Or: SECURITY-ROADMAP implementation (SecurityPolicy model)
-
 ---
 
 ### 🗓️ 2026-04-19 — Phase 1 + Phase 2 COMPLETE
@@ -159,8 +210,8 @@
 | 1. Backend Security Core | ✅ DONE | password-policy, rate-limit, audit |
 | 2. Change Password | ✅ DONE | API + UI |
 | 2C. Forgot Password | ✅ DONE | API + UI + Resend email |
-| 3. Login History UI | ⏳ NEXT | User-facing audit trail |
-| 4. MFA (TOTP) | ⏳ PLANNED | Google Authenticator support |
+| 3. Login History UI | ✅ DONE | API + UI + dark theme + CSV export |
+| 4. MFA (TOTP) | ⏳ NEXT | Google Authenticator support |
 | 5. IP Whitelisting | ⏳ PLANNED | Business tier feature |
 | 6. SSO/SAML | ⏳ FUTURE | Enterprise tier feature |
 
@@ -199,4 +250,4 @@ gcloud beta builds log $BUILD_ID --project=rsl-sys --stream
 
 ---
 
-**Last updated:** 2026-04-20
+**Last updated:** 2026-04-21
