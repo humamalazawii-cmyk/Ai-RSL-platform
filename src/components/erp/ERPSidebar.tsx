@@ -44,9 +44,7 @@ const NAV_GROUPS: NavGroup[] = [
     id: 'settings',
     label: 'الإعدادات',
     items: [
-      { href: '/erp/settings', label: 'نظرة عامة', icon: '⚙️' },
-      { href: '/erp/settings/change-password', label: 'تغيير كلمة المرور', icon: '🔐' },
-      { href: '/erp/settings/login-history', label: 'سجل تسجيلات الدخول', icon: '📋' },
+      { href: '/erp/settings', label: 'مركز الإعدادات', icon: '⚙️' },
     ],
   },
 ];
