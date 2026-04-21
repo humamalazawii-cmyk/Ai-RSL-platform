@@ -39,7 +39,7 @@ const EVENT_CONFIG: Record<
 > = {
   LOGIN_SUCCESS: { label: 'تسجيل دخول ناجح', color: '#15803D', bg: '#DCFCE7' },
   LOGIN_FAILURE: { label: 'محاولة دخول فاشلة', color: '#B91C1C', bg: '#FEE2E2' },
-  LOGOUT: { label: 'تسجيل خروج', color: '#475569', bg: '#F1F5F9' },
+  LOGOUT: { label: 'تسجيل خروج', color: '#CBD5E1', bg: '#F1F5F9' },
   PASSWORD_CHANGED: { label: 'تغيير كلمة المرور', color: '#1D4ED8', bg: '#DBEAFE' },
   PASSWORD_RESET_REQUESTED: { label: 'طلب استرجاع كلمة المرور', color: '#A16207', bg: '#FEF3C7' },
   PASSWORD_RESET_COMPLETED: { label: 'إعادة تعيين كلمة المرور', color: '#15803D', bg: '#DCFCE7' },
@@ -100,7 +100,7 @@ function eventConfig(eventType: string) {
   return (
     EVENT_CONFIG[eventType] ?? {
       label: eventType,
-      color: '#475569',
+      color: '#CBD5E1',
       bg: '#F1F5F9',
     }
   );
@@ -190,7 +190,7 @@ export default function LoginHistoryPage() {
       dir="rtl"
       style={{
         minHeight: '100vh',
-        background: '#F8FAFC',
+        background: '#0F172A',
         padding: '24px',
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
@@ -210,29 +210,29 @@ export default function LoginHistoryPage() {
               style={{
                 fontSize: '28px',
                 fontWeight: 700,
-                color: '#1E293B',
+                color: '#F1F5F9',
                 margin: '0 0 8px 0',
               }}
             >
               📋 سجل تسجيلات الدخول
             </h1>
-            <p style={{ color: '#64748B', fontSize: '14px', margin: 0 }}>
+            <p style={{ color: '#94A3B8', fontSize: '14px', margin: 0 }}>
               مراجعة آخر نشاطات حسابك للأمان
             </p>
           </div>
           <Link
-            href="/erp/settings"
+            href="/erp"
             style={{
               padding: '8px 16px',
-              background: '#FFFFFF',
-              border: '1px solid #E2E8F0',
+              background: '#1E293B',
+              border: '1px solid #334155',
               borderRadius: '8px',
-              color: '#475569',
+              color: '#CBD5E1',
               textDecoration: 'none',
               fontSize: '14px',
             }}
           >
-            ← العودة للإعدادات
+            ← العودة للوحة القيادة
           </Link>
         </div>
 
@@ -242,8 +242,8 @@ export default function LoginHistoryPage() {
             style={{
               padding: '60px',
               textAlign: 'center',
-              color: '#64748B',
-              background: '#FFFFFF',
+              color: '#94A3B8',
+              background: '#1E293B',
               borderRadius: '12px',
             }}
           >
@@ -329,9 +329,9 @@ export default function LoginHistoryPage() {
                 onChange={(e) => setFilter(e.target.value)}
                 style={{
                   padding: '8px 12px',
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid #334155',
                   borderRadius: '8px',
-                  background: '#FFFFFF',
+                  background: '#1E293B',
                   fontSize: '14px',
                   minWidth: '200px',
                 }}
@@ -348,12 +348,12 @@ export default function LoginHistoryPage() {
                 onClick={() => void fetchHistory()}
                 style={{
                   padding: '8px 16px',
-                  background: '#FFFFFF',
-                  border: '1px solid #E2E8F0',
+                  background: '#1E293B',
+                  border: '1px solid #334155',
                   borderRadius: '8px',
                   cursor: 'pointer',
                   fontSize: '14px',
-                  color: '#475569',
+                  color: '#CBD5E1',
                 }}
               >
                 🔄 تحديث
@@ -380,7 +380,7 @@ export default function LoginHistoryPage() {
                 style={{
                   marginRight: 'auto',
                   fontSize: '13px',
-                  color: '#64748B',
+                  color: '#94A3B8',
                 }}
               >
                 عرض {filteredEvents.length} من أصل {data.events.length} حدث
@@ -390,10 +390,10 @@ export default function LoginHistoryPage() {
             {/* Events table */}
             <div
               style={{
-                background: '#FFFFFF',
+                background: '#1E293B',
                 borderRadius: '12px',
                 overflow: 'hidden',
-                border: '1px solid #E2E8F0',
+                border: '1px solid #334155',
               }}
             >
               {filteredEvents.length === 0 ? (
@@ -401,7 +401,7 @@ export default function LoginHistoryPage() {
                   style={{
                     padding: '40px',
                     textAlign: 'center',
-                    color: '#64748B',
+                    color: '#94A3B8',
                   }}
                 >
                   لا توجد أحداث لعرضها
@@ -415,7 +415,7 @@ export default function LoginHistoryPage() {
                   }}
                 >
                   <thead>
-                    <tr style={{ background: '#F8FAFC' }}>
+                    <tr style={{ background: '#0F172A' }}>
                       <th style={th}>التاريخ والوقت</th>
                       <th style={th}>الحدث</th>
                       <th style={th}>الحالة</th>
@@ -429,7 +429,7 @@ export default function LoginHistoryPage() {
                       return (
                         <tr
                           key={e.id}
-                          style={{ borderBottom: '1px solid #F1F5F9' }}
+                          style={{ borderBottom: '1px solid #334155' }}
                         >
                           <td style={td}>{formatDate(e.createdAt)}</td>
                           <td style={td}>
@@ -457,7 +457,7 @@ export default function LoginHistoryPage() {
                           <td style={{ ...td, fontFamily: 'monospace' }}>
                             {e.ip ?? '-'}
                           </td>
-                          <td style={{ ...td, color: '#64748B' }}>
+                          <td style={{ ...td, color: '#94A3B8' }}>
                             {parseUserAgent(e.userAgent)}
                           </td>
                         </tr>
@@ -474,7 +474,7 @@ export default function LoginHistoryPage() {
                 marginTop: '16px',
                 padding: '12px',
                 fontSize: '12px',
-                color: '#64748B',
+                color: '#94A3B8',
                 textAlign: 'center',
               }}
             >
@@ -506,10 +506,10 @@ function SummaryCard({
   return (
     <div
       style={{
-        background: '#FFFFFF',
+        background: '#1E293B',
         padding: '20px',
         borderRadius: '12px',
-        border: '1px solid #E2E8F0',
+        border: '1px solid #334155',
       }}
     >
       <div
@@ -522,7 +522,7 @@ function SummaryCard({
       >
         {icon} {value.toLocaleString('en-US')}
       </div>
-      <div style={{ fontSize: '13px', color: '#64748B' }}>{label}</div>
+      <div style={{ fontSize: '13px', color: '#94A3B8' }}>{label}</div>
     </div>
   );
 }
@@ -536,8 +536,8 @@ const th: React.CSSProperties = {
   textAlign: 'right',
   fontSize: '12px',
   fontWeight: 600,
-  color: '#475569',
-  borderBottom: '2px solid #E2E8F0',
+  color: '#CBD5E1',
+  borderBottom: '2px solid #334155',
 };
 
 const td: React.CSSProperties = {
