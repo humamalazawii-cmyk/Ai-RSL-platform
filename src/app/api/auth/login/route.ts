@@ -138,20 +138,28 @@ export async function POST(req: NextRequest) {
     const passwordValid = await verifyPassword(password, user.passwordHash);
 
     if (!passwordValid) {
-      // Increment failed attempts
-      const newFailedCount = user.failedLoginAttempts + 1;
+      // Auto-reset counter if last failed attempt was > 24h ago
+      // Prevents stale failures from accumulating over days/weeks
+      const RESET_WINDOW_MS = 24 * 60 * 60 * 1000;
+      const nowMs = Date.now();
+      const lastFailed = user.lastFailedAttempt?.getTime() ?? 0;
+      const shouldResetCounter = nowMs - lastFailed > RESET_WINDOW_MS;
+
+      const newFailedCount = shouldResetCounter ? 1 : user.failedLoginAttempts + 1;
       const shouldLock = newFailedCount >= PASSWORD_POLICY.lockoutThreshold;
 
       const updateData: {
         failedLoginAttempts: number;
+        lastFailedAttempt: Date;
         lockedUntil?: Date;
       } = {
         failedLoginAttempts: newFailedCount,
+        lastFailedAttempt: new Date(nowMs),
       };
 
       if (shouldLock) {
         updateData.lockedUntil = new Date(
-          Date.now() + PASSWORD_POLICY.lockoutDurationMinutes * 60 * 1000
+          nowMs + PASSWORD_POLICY.lockoutDurationMinutes * 60 * 1000
         );
       }
 

@@ -78,6 +78,7 @@ model User {
 
   passwordChangedAt   DateTime?
   failedLoginAttempts Int       @default(0)
+  lastFailedAttempt   DateTime?
   lockedUntil         DateTime?
 
   mfaEnabled     Boolean   @default(false)
