@@ -123,9 +123,10 @@ model PasswordResetToken {
 // ============================================
 model AuthEvent {
   id        String        @id @default(cuid())
-  userId    String?
-  user      User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  email     String?
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationId String?
+  email          String?
   eventType AuthEventType
   success   Boolean
   ip        String?
@@ -139,6 +140,7 @@ model AuthEvent {
   @@index([createdAt])
   @@index([ip])
   @@index([success])
+  @@index([organizationId])
 }
 
 enum AuthEventType {
