@@ -190,7 +190,29 @@ export async function POST(req: NextRequest) {
     }
 
     // -----------------------------------------
-    // 7. Success: reset counters, issue token
+    // -----------------------------------------
+    // 7a. MFA Check: if enabled, return challenge token (no cookie)
+    // -----------------------------------------
+    if (user.mfaEnabled) {
+      const challengeToken = createSession(
+        {
+          type: 'user',
+          userId: user.id,
+          email: user.email,
+          role: user.role,
+        },
+        '5m'
+      );
+      const res = NextResponse.json({
+        ok: true,
+        mfaRequired: true,
+        challengeToken,
+      });
+      return withRateLimitHeaders(res, loginRl);
+    }
+
+    // -----------------------------------------
+    // 7b. Success: reset counters, issue token
     // -----------------------------------------
     await prisma.user
       .update({

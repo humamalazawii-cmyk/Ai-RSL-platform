@@ -45,8 +45,17 @@ export default function LandingPage() {
       body: JSON.stringify(loginForm)
     });
     setLoading(false);
-    if (r.ok) router.push('/erp');
-    else { const j = await r.json(); setError(j.error || 'خطأ'); }
+   if (r.ok) {
+      const j = await r.json();
+      if (j.mfaRequired && j.challengeToken) {
+        router.push(`/auth/mfa-challenge?token=${encodeURIComponent(j.challengeToken)}`);
+      } else {
+        router.push('/erp');
+      }
+    } else {
+      const j = await r.json();
+      setError(j.error || 'خطأ');
+    }
   }
 
   if (mode === 'hero') {
