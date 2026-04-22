@@ -293,4 +293,236 @@ See `docs/SECURITY-ROADMAP.md` for the complete tiered security strategy.
 ## 🛠️ Useful Commands Reference
 
 ### Cloud SQL Auth Proxy + DB query
+```# ═══════════════════════════════════════════════════════════════
+# أضف هذا القسم إلى SESSION-LOG.md بعد آخر entry موجود
+# Path: ~/Ai-RSL-platform/SESSION-LOG.md
+# ═══════════════════════════════════════════════════════════════
+
+---
+
+## 📅 الجلسة 2026-04-22 — الرؤية الاستراتيجية الكبرى
+
+**النوع:** نقاش استراتيجي + تحديث رؤية المشروع
+**المدة:** ~2 ساعة
+**النتيجة:** توثيق رؤية RSL-AI الموسّعة
+
+---
+
+### 🎯 القرارات الاستراتيجية الكبرى
+
+#### 1. القطاع المستهدف (تم تحديده)
+- **المختبرات الطبية + وكالات الأجهزة الطبية والمختبرية**
+- السبب: خبرة عميقة سابقة لهمام في هذا القطاع
+- الميزة: معرفة SOPs + workflows + standards بدون حاجة consultant
+
+#### 2. Timeline (تم تعديله)
+- **6 شهور** بدل 4 شهور
+- السبب: المستثمرون مرنون وودين
+- النتيجة: جودة أعلى + Brain مكتمل + ضغط أقل
+
+#### 3. الاستراتيجية: "Show, Don't Tell"
+- قطاع واحد بنجاح كامل > 14 قطاع نصف مُنجز
+- هدف: 1-2 مختبر يعمل بكفاءة حقيقية
+- Pitch: "شوفوا يعمل! امنحونا فرصة التوسع"
+
+#### 4. Multi-tenant (مؤجّل)
+- **ليس ضرورياً** للـ demo
+- Single-tenant يكفي لإبهار المستثمرين
+- Multi-tenant يأتي مع التمويل
+
+---
+
+### 🧠 رؤية COE الموسّعة (مهم جداً!)
+
+**COE ليس مجرّد Orchestrator — COE هو BRAIN حقيقي**
+
+#### البنية:
 ```
+COE Brain
+    ↓
+Knowledge Library
+    ├── SOPs (إجراءات قياسية تشغيلية)
+    ├── Policies (سياسات)
+    ├── Strategies (استراتيجيات)
+    └── Workflow Charts (مخططات سير العمل)
+```
+
+#### آلية العمل:
+- أي عملية → COE يستعلم Knowledge Library
+- يستخرج الإجراء الصحيح + السياسة + الاستراتيجية
+- يطبّق الذكاء فعلياً (ليس validation فقط)
+
+#### مثال عملي:
+```
+فاتورة 500 مليون IQD:
+   COE يستعلم:
+      📚 SOP: "فواتير فوق 100 مليون تحتاج 3 موافقات"
+      📋 Policy: "حد المدير = 200 مليون"
+      💼 Strategy: "الشركة عندها 800 مليون سيولة"
+   
+   القرار الذكي:
+      ❌ رفض الصرف المباشر
+      ✅ توجيه للموافقات
+      💡 اقتراح: تقسيم 3 دفعات
+      ⚠️ تحذير: يستهلك 62% سيولة
+```
+
+#### التقنية:
+- Vector DB + LLM + RAG architecture
+- PostgreSQL + JSONB للـ Knowledge storage
+
+---
+
+### 📚 استراتيجية بناء Knowledge Library
+
+#### المصادر:
+1. **AI Generation** (ChatGPT/Claude) — يولّد SOPs أولية
+2. **خبرة همام** — مراجعة + تصحيح (ميزة تنافسية!)
+3. **مصادر مجانية** — WHO, CDC, FDA, CLSI
+4. **معايير ISO مدفوعة** — 13485, 15189, 17025 (~$770)
+
+#### التغطية التدريجية:
+- **السنة 1:** قطاع واحد (مختبرات) — عمق كامل
+- **السنة 2:** 3 قطاعات إضافية
+- **السنة 3:** 8 قطاعات
+- **السنة 5:** كل الـ 24 قطاع
+
+#### الـ Game Changer:
+- Self-generating library عبر customer contributions
+- Network effects = كل عميل جديد يضيف قيمة للكل
+
+---
+
+### 💰 هيكل الشركة والمستثمرون
+
+#### المساهمون:
+- **همام + شريقه المالي:** 70%
+  - شريق = تمويل فقط (~$1-1.5K للـ 6 شهور)
+  - ليس تقني ولا مبيعات
+- **المستثمران (2):** 30%
+  - عندهم 14 شركة + شبكة واسعة
+  - قطاعات: تأمين + طاقة + مختبرات + صيدليات + عيادات + وكالات
+
+#### المستثمرون الصفات:
+- ✅ مرنون
+- ✅ ودين
+- ✅ مفهومون
+- ✅ دعم مالي + شبكة + عملاء بيتا محتملين
+
+---
+
+### ⚠️ ملاحظات الوقت والقدرة
+
+- **الوقت المتاح:** 3-4 ساعات يومياً (مع وظيفة أساسية)
+- **إجمالي الساعات:** ~336 ساعة في 6 شهور
+- **الحجم المطلوب:** 370-500 ساعة
+- **الاستراتيجية:** التركيز على Core Brain + تقليل Polish
+
+---
+
+### 🗓️ الخطة المتفق عليها (6 شهور)
+
+#### الشهر 1 (مايو 2026): Foundation
+- إصلاح MFA bug + Login Integration (Phase 4 → 100%)
+- Multi-tenant بسيط (organizationId)
+- User Management
+- COE Schema + Core Engine
+- ابدأ توثيق Lab Knowledge
+
+#### الشهر 2 (يونيو 2026): COE Layers + Library
+- COE Layer 1+2 (Monitor + Detect)
+- COE Layer 3+4 (Train + Evaluate)
+- Knowledge Library schema
+- ربط COE بـ Library
+
+#### الشهر 3 (يوليو 2026): CJAE
+- CJAE Engine كامل
+- 12 قالب محاسبي
+- Auto-generate journals
+- Double-entry enforcement
+
+#### الشهر 4 (أغسطس 2026): CUOM + Lab Knowledge
+- CUOM Engine (7 cats, 35 units)
+- Lab Knowledge Library (200+ SOPs, 50+ policies, 30+ workflows)
+- Test catalog templates
+
+#### الشهر 5 (سبتمبر 2026): Smart Setup + Lab Module
+- Smart Setup Wizard
+- Lab Module كامل
+- Patient/Sample workflow
+- Multi-payer invoicing
+
+#### الشهر 6 (أكتوبر 2026): Beta + Pitch
+- إعداد المختبر الأول (يومين setup + 3 أيام training)
+- GO LIVE المختبر الأول
+- إعداد المختبر الثاني (validation)
+- Demo video احترافي
+- Pitch deck
+- **PITCH للمستثمرين!**
+
+---
+
+### 🎬 الـ Pitch Story (للمستثمرين بعد 6 شهور)
+
+```
+"يا مستثمرون،
+
+في 6 شهور بنينا:
+✅ 3 عقول مع 4 طبقات (12 وظيفة ذكية)
+✅ Knowledge Library متخصصة (200+ SOP)
+✅ Smart Setup Wizard
+✅ Lab Module متكامل
+
+النتيجة:
+🏥 مختبران يعملان بكفاءة كاملة
+⏱️ كل واحد تم تشغيله في 7 أيام فقط
+   (مقابل SAP/Epic: 6-24 شهر + $100K-$1M+)
+
+Demo live:
+   يوم 1: AI Brain يولّد 850 حساب + 200 workflow
+   يوم 2: كل السياسات + الإجراءات جاهزة
+   يوم 3-5: تدريب الكادر
+   يوم 7: GO LIVE
+   
+   التكلفة: $0 customization
+   الإنتاج: فوري
+
+السوق:
+   500 مختبر في العراق
+   5,000 في المنطقة
+   
+   لو وصلنا 100 مختبر فقط:
+   $50,000/شهر MRR
+   
+الطلب:
+   $300,000 مقابل 30% equity
+   لـ: توظيف فريق + multi-tenant + توسع
+   
+الهدف:
+   100+ مختبر في 12 شهر
+   1,000+ في 3 سنوات
+   التوسع لـ 24 قطاع في 5 سنوات"
+```
+
+---
+
+### ✅ القرارات التالية (للجلسات القادمة)
+
+1. **أولوية فورية:** إصلاح MFA bug (~25min) + Login Integration (~30min)
+2. **ثم:** تنظيف test user
+3. **ثم:** بدء الشهر 1 من الـ 6-Month Roadmap
+4. **مطلوب من همام:**
+   - جمع 30 SOP أساسي للمختبرات (خلال الشهر الأول)
+   - تحديد الميزانية لشراء ISO standards
+   - تأكيد الاتفاق النهائي مع المستثمرين (إذا لم يتم بعد)
+
+---
+
+### 📊 الـ Memory Entries المُحدّثة (Claude context)
+
+- Entry #7: Phase 4 status (80% + pending tasks)
+- Entry #8: Strategic Vision v2 (target sector + timeline + deal)
+- Entry #9: COE Brain Vision (Knowledge Library + phased coverage)
+- Entry #10: 6-Month Roadmap (month-by-month plan)
+
+---
