@@ -203,6 +203,20 @@ export async function POST(req: NextRequest) {
     // 7a. MFA Check: if enabled, return challenge token (no cookie)
     // -----------------------------------------
     if (user.mfaEnabled) {
+      // Password was correct — reset failure counters before issuing MFA challenge
+      await prisma.user
+        .update({
+          where: { id: user.id },
+          data: {
+            failedLoginAttempts: 0,
+            lastFailedAttempt: null,
+            lockedUntil: null,
+          },
+        })
+        .catch((err) => {
+          console.error('[login] failed to reset counters on MFA branch:', err);
+        });
+
       const challengeToken = createSession(
         {
           type: 'user',
@@ -231,6 +245,7 @@ export async function POST(req: NextRequest) {
         data: {
           lastLogin: new Date(),
           failedLoginAttempts: 0,
+          lastFailedAttempt: null,
           lockedUntil: null,
         },
       })
