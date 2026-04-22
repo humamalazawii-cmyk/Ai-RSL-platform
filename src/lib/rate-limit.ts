@@ -226,6 +226,26 @@ export function getClientIp(headers: Headers): string {
  * Build standard RateLimit headers (RFC 6585 + IETF draft).
  * Attach to responses for client visibility.
  */
+/**
+ * Reset login rate limit counter for a given IP+email.
+ * Called after successful login/MFA to avoid penalizing legitimate users
+ * who had prior failed attempts but eventually logged in successfully.
+ */
+export async function resetLoginRateLimit(
+  ip: string,
+  email: string
+): Promise<void> {
+  const limiter = getLoginLimiter();
+  if (!limiter) return;
+  try {
+    const key = `${ip}:${email.toLowerCase()}`;
+    await limiter.resetUsedTokens(key);
+  } catch (err) {
+    console.error('[rate-limit] reset failed:', err);
+    // Non-critical — don't throw
+  }
+}
+
 export function rateLimitHeaders(result: RateLimitResult): Record<string, string> {
   const headers: Record<string, string> = {
     'X-RateLimit-Limit': String(result.limit),

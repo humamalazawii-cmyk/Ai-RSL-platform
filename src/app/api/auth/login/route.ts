@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma, verifyPassword, createSession } from '@/lib/db';
 import {
   checkLoginRateLimit,
+  resetLoginRateLimit,
   checkGeneralRateLimit,
   getClientIp,
   rateLimitHeaders,
@@ -203,6 +204,8 @@ export async function POST(req: NextRequest) {
         },
         '5m'
       );
+      // Password was correct — reset rate limit counter
+      resetLoginRateLimit(ip, email).catch(() => {});
       const res = NextResponse.json({
         ok: true,
         mfaRequired: true,
@@ -238,6 +241,7 @@ export async function POST(req: NextRequest) {
     );
 
     logLoginSuccess(user.id, email, ip, userAgent).catch(() => {});
+    resetLoginRateLimit(ip, email).catch(() => {});
 
     const res = NextResponse.json({ ok: true });
     res.cookies.set('rsl-user', token, {

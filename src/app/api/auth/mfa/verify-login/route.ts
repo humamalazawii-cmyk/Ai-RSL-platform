@@ -12,6 +12,7 @@ import {
 import {
   checkLoginRateLimit,
   checkGeneralRateLimit,
+  resetLoginRateLimit,
   getClientIp,
   rateLimitHeaders,
 } from '@/lib/rate-limit';
@@ -146,6 +147,7 @@ export async function POST(req: NextRequest) {
 
     logMFAChallengeSuccess(user.id, user.email, ip, userAgent, { usedBackupCode }).catch(() => {});
     logLoginSuccess(user.id, user.email, ip, userAgent).catch(() => {});
+    resetLoginRateLimit(ip, user.email).catch(() => {});
 
     const res = NextResponse.json({
       ok: true,
