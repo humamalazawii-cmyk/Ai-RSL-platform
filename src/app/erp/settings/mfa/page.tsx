@@ -50,16 +50,27 @@ export default function MFASettingsPage() {
     setStep('loading');
     setError(null);
     try {
-      // Fetch user via login-history endpoint (returns user object)
-      const res = await fetch('/api/auth/login-history?limit=1', {
+      const res = await fetch('/api/auth/mfa/status', {
         credentials: 'include',
       });
-      if (!res.ok) {
-        throw new Error('فشل التحقق من الحالة');
+
+      if (res.status === 401) {
+        setError('يجب تسجيل الدخول أولاً');
+        setStep('disabled');
+        return;
       }
-      // We don't get mfaEnabled from this — we infer by trying setup
-      // For now, show the disabled state and let user decide
-      setStep('disabled');
+
+      if (!res.ok) {
+        throw new Error('فشل التحقق من حالة MFA');
+      }
+
+      const data = await res.json();
+
+      if (data.enabled === true) {
+        setStep('enabled');
+      } else {
+        setStep('disabled');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'خطأ غير معروف');
       setStep('disabled');
