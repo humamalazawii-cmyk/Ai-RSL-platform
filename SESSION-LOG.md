@@ -688,3 +688,341 @@ Demo live:
 - **Daily capacity:** 3-4 hours
 
 ---
+
+---
+
+## 📅 الجلسة 2026-04-22 (الجزء الثالث) — Multi-tenant Basics + 3 Bug Fixes + Ali Jalal Account
+
+**النوع:** عمل تقني ماراثوني
+**المدة:** ~5 ساعات (مكمّل لجلسة Phase 4 الصباحية)
+**المجموع اليوم:** ~8 ساعات
+**النتيجة:** Multi-tenant + 3 Critical Bug Fixes + إضافة شريك
+
+---
+
+### 🎯 الإنجازات
+
+#### 1. Multi-tenant Basics ✅
+
+**اكتشاف مهم:**
+- Schema موجود فيه 80% من Multi-tenant بالفعل!
+- Organization model + organizationId في User/Account/JournalEntry
+
+**التعديلات المطلوبة (20%):**
+
+**Schema:**
+- إضافة `organizationId String?` في AuthEvent
+- إضافة `@@index([organizationId])` على AuthEvent
+- Migration: `20260422082652_add_auth_event_org_id`
+
+**Seed Data (تطبيق يدوي):**
+- إنشاء Organization جديد:
+  - id: `org_rsl_ai_company`
+  - name: `RSL-AI Company`
+  - sector: `TECHNOLOGY`
+  - subSector: `SAAS`
+  - country: `IQ`
+  - baseCurrency: `IQD`
+- ربط الـ 2 users الحاليين بهذا الـ org
+
+**Commit:** `a21dd64` — "feat(db): add organizationId to AuthEvent + seed RSL-AI Company org"
+
+**ملاحظة:** Full Multi-tenant enforcement (RLS, org-switching) مؤجّل لـ Phase 2 بعد التمويل.
+
+---
+
+#### 2. Test User Cleanup ✅
+
+**الإجراءات:**
+- حذف `humamalazawii@gmail.com` من DB (كان مستخدم اختبار MFA)
+- المستخدم الوحيد المتبقي: `admin@rsl-ai.com` (SUPER_ADMIN)
+
+---
+
+#### 3. Admin Password Reset (Recovery) ✅
+
+**المشكلة:** نسي الباسورد الجديد بعد بدّله من Bitwarden.
+
+**الحل:**
+- استخدام Cloud SQL Proxy + bcrypt مباشرة
+- توليد hash جديد ثم UPDATE في DB
+- تعلّم النمط الصحيح: `NEW_PASS_VAL="$NEW_PASS" node -e "..."`
+- (نمط خاطئ: `node -e "..." NEW_PASS="$NEW_PASS"` — يفشل صامتاً)
+
+---
+
+#### 4. Admin MFA Enabled (Live!) ✅
+
+**النتيجة:**
+- admin@rsl-ai.com الآن محمي بـ MFA
+- 10 backup codes محفوظة في Bitwarden ("RSL-AI Admin MFA Backup Codes")
+
+---
+
+#### 5. 🐛 Bug Fix #1: Rate Limit Reset on Success ✅
+
+**المشكلة المكتشفة (بواسطة همام):**
+- failedLoginAttempts counter في Redis يتراكم عبر الجلسات
+- Successful login لا يُصفّر الـ counter
+- المستخدمون الشرعيون يُعاقبون بسبب محاولاتهم القديمة
+
+**السيناريو (قبل الإصلاح):**
+```
+1. User يجرّب 3 محاولات باسوورد غلط
+2. يتذكر الصحيح → دخول ناجح ✅
+3. يخرج ويرجع يدخل
+4. يدخل كود MFA خطأ 1 مرة
+5. → 3 + 1 + 1 = 5 = Rate limit triggered (WRONG!)
+```
+
+**الحل:**
+
+**ملف جديد في `src/lib/rate-limit.ts`:**
+```typescript
+export async function resetLoginRateLimit(ip: string, email: string): Promise<void> {
+  const limiter = getLoginLimiter();
+  if (!limiter) return;
+  try {
+    const key = `${ip}:${email.toLowerCase()}`;
+    await limiter.resetUsedTokens(key);
+  } catch (err) {
+    console.error('[rate-limit] reset failed:', err);
+  }
+}
+```
+
+**استدعاؤها في:**
+- `src/app/api/auth/login/route.ts` (في BOTH success branches)
+- `src/app/api/auth/mfa/verify-login/route.ts` (بعد MFA success)
+
+**Commit:** `0f1d368` — "fix(security): reset login rate limit after successful auth"
+
+---
+
+#### 6. 🐛 Bug Fix #2: 24h Auto-Reset failedLoginAttempts ✅
+
+**المشكلة المكتشفة (بواسطة همام):**
+- failedLoginAttempts counter في DB يستمر بدون انتهاء صلاحية
+- محاولات قديمة من أيام/أسابيع مضت تتراكم مع الجديدة
+- يسبب lockout مبكر
+
+**السيناريو (قبل الإصلاح):**
+```
+يوم 2026-04-20: 4 محاولات فاشلة
+يوم 2026-04-22: محاولة 1 فاشلة
+→ Counter = 5 → ACCOUNT LOCKED!
+(ولكن محاولات يوم 20 عمرها يومين!)
+```
+
+**الحل:**
+
+**Schema change:**
+- إضافة `User.lastFailedAttempt` (DateTime?, nullable)
+- Migration: `20260422094042_add_last_failed_attempt`
+
+**Logic update في `src/app/api/auth/login/route.ts`:**
+```typescript
+const RESET_WINDOW_MS = 24 * 60 * 60 * 1000;
+const nowMs = Date.now();
+const lastFailed = user.lastFailedAttempt?.getTime() ?? 0;
+const shouldResetCounter = nowMs - lastFailed > RESET_WINDOW_MS;
+
+const newFailedCount = shouldResetCounter ? 1 : user.failedLoginAttempts + 1;
+const updateData: { ... } = {
+  failedLoginAttempts: newFailedCount,
+  lastFailedAttempt: new Date(nowMs),  // دائماً يُحدّث
+  // ...
+};
+```
+
+**النتيجة:**
+- ✅ المحاولات القديمة (>24h) لا تُحسب مع الجديدة
+- ✅ Brute-force protection يبقى نشطاً (5 محاولات/24h)
+
+**Commit:** `34205da` — "fix(security): auto-reset failedLoginAttempts after 24h idle"
+
+---
+
+#### 7. 🐛 Bug Fix #3: Reset All Counters on Password Success ✅
+
+**المشكلة المكتشفة (بواسطة همام):**
+- Success branches لا تصفّر كل counters!
+- 7b (no-MFA): يصفّر `failedLoginAttempts` + `lockedUntil` لكن **ليس** `lastFailedAttempt`
+- 7a (MFA branch): **لا يصفّر أي شي** قبل إصدار challenge token
+
+**السيناريو (قبل الإصلاح):**
+```
+1. User يجرّب 2 باسوورد غلط (counter = 2)
+2. يدخل الباسورد الصحيح (MFA enabled)
+3. يحصل على MFA challenge
+4. يدخل كود MFA غلط
+5. يرجع للدخول، يجرّب باسوورد غلط
+   → counter = 3 (المفروض = 1 لأن الباسوورد نجح في الخطوة 2!)
+```
+
+**الحل:**
+
+**في 7a (MFA branch) — جديد:**
+```typescript
+if (user.mfaEnabled) {
+  // Password was correct — reset failure counters before issuing MFA challenge
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      failedLoginAttempts: 0,
+      lastFailedAttempt: null,
+      lockedUntil: null,
+    },
+  }).catch(...);
+  
+  const challengeToken = createSession(...);
+  // ...
+}
+```
+
+**في 7b (no-MFA branch) — تحديث:**
+```typescript
+data: {
+  lastLogin: new Date(),
+  failedLoginAttempts: 0,
+  lastFailedAttempt: null,    // ← جديد
+  lockedUntil: null,
+},
+```
+
+**Commit:** `073af84` — "fix(security): reset failure counters on password success (both paths)"
+
+**اختبار:**
+- ✅ counter = 2 قبل الدخول الناجح
+- ✅ counter = 0 بعد الدخول الناجح
+- ✅ يبدأ من 1 لأي محاولة فاشلة جديدة
+
+---
+
+#### 8. 👥 إضافة شريك علي جلال ✅
+
+**التفاصيل:**
+- Email: `ajalal72@gmail.com`
+- Name: `علي جلال`
+- Role: `USER` (عرض فقط)
+- Organization: `RSL-AI Company`
+- Password: مُولّد قوي (16 char، محفوظ مع همام)
+
+**Method:** SQL INSERT مباشر (لا يوجد User Management UI بعد)
+
+**رسائل جاهزة:** 3 صيغ مُعدّة (رسمية / ودّية / تفصيلية)
+
+**Backlog item:** بناء User Management UI (Month 1 task)
+
+---
+
+### 🛠️ التقنيات الجديدة المُكتسبة
+
+```
+✅ Cloud SQL Auth Proxy للوصول لـ DB من Cloud Shell
+✅ Upstash Ratelimit resetUsedTokens API
+✅ Upstash REST API (للـ keys + flushall)
+✅ bcrypt environment variable pattern (NEW_PASS_VAL hack)
+✅ Prisma migrate dev بدون DATABASE_URL في build
+✅ Sliding window rate limiting concepts
+✅ DB schema evolution مع manual seed
+```
+
+---
+
+### 📊 الإحصائيات الكاملة لليوم
+
+```
+⏱️ ساعات: ~8 ساعات (تجاوز القدرة اليومية بكثير!)
+📝 Commits: 8 ناجحة
+🏗️ Cloud Builds: 6 SUCCESS
+💻 Code: ~800 سطر جديد
+🐛 Bugs caught & fixed by Humam: 3 (engineering judgment ممتاز)
+👥 Users created: 1 (Ali Jalal)
+📊 Production bugs: 0
+```
+
+---
+
+### 📜 جميع Commits اليوم (مرتبة)
+
+```
+1. aa40a78 — docs: SESSION-LOG strategic vision v2
+2. 0758a9c — fix(mfa): MFA status endpoint + checkStatus UI bug
+3. 319299a — feat(mfa): complete MFA login integration (Phase 4 → 100%)
+4. 8cb856d — docs: SESSION-LOG Phase 4 complete
+5. a21dd64 — feat(db): add organizationId to AuthEvent + seed RSL-AI Company org
+6. 0f1d368 — fix(security): reset login rate limit after successful auth
+7. 34205da — fix(security): auto-reset failedLoginAttempts after 24h idle
+8. 073af84 — fix(security): reset failure counters on password success (both paths)
+```
+
+---
+
+### 🛡️ حالة الأمان النهائية (محدّثة)
+
+```
+✅ Phase 1: Backend Core
+✅ Phase 2: Change Password
+✅ Phase 2C: Forgot Password
+✅ Phase 3: Login History UI
+✅ Phase 4: MFA (TOTP + Backup Codes) ← اكتمل اليوم!
+✅ Account Lockout: محدّث بـ 24h auto-reset
+✅ Rate Limiting: يُصفّر تلقائياً عند نجاح الدخول
+⏳ Phase 5: IP Whitelisting (مستقبلي)
+⏳ Phase 6: SSO / Enterprise (مستقبلي)
+```
+
+---
+
+### 👥 المستخدمون الحاليون في Production
+
+```
+1. admin@rsl-ai.com          | SUPER_ADMIN | MFA: ✅ مفعّل
+2. ajalal72@gmail.com (علي)  | USER         | MFA: ❌ لم يُفعّل بعد
+```
+
+---
+
+### 🏢 Organizations الحالية
+
+```
+1. org_rsl_ai_company | RSL-AI Company | TECHNOLOGY/SAAS | IQ
+   └── 2 users (admin + Ali)
+```
+
+---
+
+### 📝 الخطوات التالية (الجلسة القادمة)
+
+```
+الأولوية الأعلى:
+1. COE Schema (OperationLog + ProcessRule + WorkflowTemplate)
+   ⏱️ 60-90 دقيقة
+   💡 بداية Month 1 الحقيقية
+
+2. User Management UI
+   ⏱️ 2-3 ساعات
+   💡 يحل مشكلة إضافة users المستقبليين بدون SQL
+
+3. Knowledge Library schema
+   ⏱️ 45 دقيقة
+   💡 PostgreSQL + JSONB للـ SOPs/Policies
+
+التوثيق:
+4. تحديث Roadmap v11 (إنجازات اليوم + Bugs المكتشفة)
+5. تحديث user-edits بالتفاصيل الجديدة
+```
+
+---
+
+### 🎯 ملاحظات هندسية مهمة
+
+**Engineering Judgment ممتاز من همام:**
+- اكتشف 3 bugs أمنية في يوم واحد
+- كلها تتعلق بـ user experience + security balance
+- bug #3 خاصة كان دقيق جداً (counters لا تُصفّر بعد success)
+
+**هذا مستوى السلوك المتوقع من مهندسين Senior في SaaS production.**
+
+---
