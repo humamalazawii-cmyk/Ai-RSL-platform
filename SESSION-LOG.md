@@ -526,3 +526,165 @@ Demo live:
 - Entry #10: 6-Month Roadmap (month-by-month plan)
 
 ---
+
+---
+
+## 📅 الجلسة 2026-04-22 (الجزء الثاني) — Phase 4 MFA — اكتمال 100%
+
+**النوع:** عمل تقني مكثّف
+**المدة:** ~2 ساعة
+**النتيجة:** Phase 4 MFA اكتمل 100% + Login Integration
+
+---
+
+### 🎯 الإنجازات
+
+#### Task #162: MFA Status UI Bug Fix ✅
+
+**المشكلة:**
+- بعد تفعيل MFA، عند reload الصفحة كانت تعرض "غير مفعّل" (خطأ)
+- Workaround مؤقت: يضغط "تفعيل" → يقول "already enabled" → يصح الـ state
+
+**السبب الجذري:**
+- `checkStatus()` في `src/app/erp/settings/mfa/page.tsx` كانت دائماً تضع `step='disabled'` بدون استعلام من الـ backend
+
+**الحل:**
+
+1. **NEW:** `src/app/api/auth/mfa/status/route.ts` (103 سطر)
+   - `GET /api/auth/mfa/status`
+   - يرجع: `{ enabled, enforcedAt, backupCodesRemaining }`
+   - Rate-limited + Session-protected
+   - يقرأ من `user.mfaEnabled` مباشرة من DB
+
+2. **UPDATED:** `src/app/erp/settings/mfa/page.tsx`
+   - `checkStatus()` الآن يستدعي `/api/auth/mfa/status`
+   - يضع `step='enabled'` أو `step='disabled'` حسب الـ DB
+   - يعالج 401 (not logged in) بشكل صحيح
+
+**Commit:** `0758a9c` — "fix(mfa): add status endpoint + fix checkStatus UI bug"
+
+---
+
+#### Task #163: MFA Login Integration ✅
+
+**الهدف:**
+- عند تسجيل دخول مستخدم عنده MFA مفعّل، يجب يمر بـ 2 steps:
+  1. Email + Password (كالمعتاد)
+  2. MFA Challenge (كود 6 أرقام من Google Authenticator)
+
+**الملفات الأربعة:**
+
+1. **UPDATED:** `src/app/api/auth/login/route.ts`
+   - بعد verify password بنجاح، check if `user.mfaEnabled`
+   - إذا true: يرجع `challengeToken` (JWT 5 دقائق) بدون cookie
+   - إذا false: يكمل الـ flow العادي (cookie 24h)
+
+2. **NEW:** `src/app/api/auth/mfa/verify-login/route.ts` (183 سطر)
+   - `POST /api/auth/mfa/verify-login`
+   - يستقبل: `{ challengeToken, code?: string, backupCode?: string }`
+   - يتحقق من الـ challengeToken (JWT)
+   - يتحقق من TOTP code (6 أرقام) أو backup code
+   - عند النجاح: يضع cookie `rsl-user` (24h)
+   - عند الفشل: audit log + error 401
+   - Rate limiting (login rate limit per email)
+
+3. **NEW:** `src/app/auth/mfa-challenge/page.tsx` (185 سطر)
+   - صفحة واجهة MFA challenge
+   - Dark theme matching login
+   - حقل 6 أرقام (numeric input)
+   - Toggle لـ backup code (لو فقد الجهاز)
+   - زر "تحقق" بـ gradient teal/gold
+   - Error handling + Loading states
+   - Auto-redirect لـ `/erp` عند النجاح
+
+4. **UPDATED:** `src/app/page.tsx`
+   - في `submitLogin()`: بعد `r.ok`, check if `j.mfaRequired`
+   - إذا mfaRequired: `router.push('/auth/mfa-challenge?token=...')`
+   - إذا لا: `router.push('/erp')` كالمعتاد
+
+**Commit:** `319299a` — "feat(mfa): complete MFA login integration (Phase 4 → 100%)"
+
+---
+
+### 🧪 الاختبارات على Production
+
+**Test 1: Login بكود خطأ (545686)**
+- ✅ الصفحة عرضت: "كود MFA غير صحيح"
+- ✅ الـ state معالج بشكل صحيح
+
+**Test 2: Login بكود صحيح (من Google Authenticator)**
+- ✅ انتقال لـ `/erp` (لوحة القيادة)
+- ✅ Cookie `rsl-user` تم وضعه
+- ✅ Session 24h نشطة
+- ✅ المستخدم: humamalazawii@gmail.com
+
+---
+
+### 📊 الحالة الحالية
+
+```
+✅ Phase 1: Backend Core
+✅ Phase 2: Change Password
+✅ Phase 2C: Forgot Password
+✅ Phase 3: Login History UI
+✅ Phase 4: MFA (TOTP + Backup Codes) ← COMPLETED TODAY!
+⏳ Phase 5: IP Whitelisting (مستقبلي)
+⏳ Phase 6: SSO / Enterprise (مستقبلي)
+```
+
+**الإحصائيات:**
+- 3 commits ناجحة (0758a9c, 319299a + earlier docs commit aa40a78)
+- 3 successful Cloud Builds
+- ~486 سطور جديدة من الكود
+- 0 production bugs
+- Phase 4 completion: 80% → 100% ✅
+
+---
+
+### 🗂️ الملفات المُعدّلة/المُنشأة
+
+**Modified (2):**
+- `src/app/api/auth/login/route.ts` (+24 insertions)
+- `src/app/page.tsx` (+9 insertions)
+- `src/app/erp/settings/mfa/page.tsx` (+18 insertions, -12 deletions)
+
+**Created (3):**
+- `src/app/api/auth/mfa/status/route.ts` (103 lines)
+- `src/app/api/auth/mfa/verify-login/route.ts` (183 lines)
+- `src/app/auth/mfa-challenge/page.tsx` (185 lines)
+
+---
+
+### 🔐 Production Revision Current State
+
+- Latest build: `a91700a9-1b94-424a-9b2f-03b85bd90c6c` ✅ SUCCESS
+- Production URL: https://rsl-ai-284761901690.me-central1.run.app
+- Admin: admin@rsl-ai.com
+- Test user (delete later): humamalazawii@gmail.com (MFA enabled)
+
+---
+
+### 📝 الخطوات التالية (للجلسة القادمة)
+
+1. **تحديث Roadmap Excel** (Tasks #162, #163 → ✅ مكتمل)
+2. **حذف test user** humamalazawii@gmail.com
+3. **بدء Month 1 من الـ 6-month roadmap:**
+   - COE Schema (OperationLog + ProcessRule + WorkflowTemplate)
+   - Multi-tenant basics (organizationId)
+   - User Management UI (مفيد لإضافة شريك جديد)
+   - Knowledge Library schema initial
+
+4. **إضافة حساب الشريك علي جلال** (عرض فقط) — مؤجل لحين بناء User Management UI
+
+---
+
+### 🎯 Strategic Context (reminder)
+
+- **Target sector:** Medical Labs + Equipment distributors
+- **Timeline:** 6 months (May → October 2026)
+- **Strategy:** "Show don't tell" — one sector perfectly first
+- **Deal:** 30% investors / 70% founders
+- **Pitch date:** October 2026
+- **Daily capacity:** 3-4 hours
+
+---
