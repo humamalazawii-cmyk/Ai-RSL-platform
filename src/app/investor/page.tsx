@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getInvestorSession } from '@/lib/db';
 import Link from 'next/link';
+import LogoutButton from '@/components/auth/LogoutButton';
 
 export default async function InvestorDashboard() {
   const session = await getInvestorSession();
@@ -19,9 +20,7 @@ export default async function InvestorDashboard() {
               <div className="text-xs text-slate-400">منصة المستثمرين</div>
             </div>
           </Link>
-          <form action="/api/auth/logout" method="POST">
-            <button className="btn-ghost text-sm">خروج</button>
-          </form>
+          <LogoutButton redirectTo="/" />
         </div>
       </header>
 

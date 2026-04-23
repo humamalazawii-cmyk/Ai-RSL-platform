@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import LogoutButton from '@/components/auth/LogoutButton';
 
 // ============================================
 // Types
@@ -192,14 +193,9 @@ export default function ERPSidebar({ email }: { email: string }) {
         <div className="px-3 py-2 mb-2 text-xs text-slate-400 truncate" title={email}>
           {email}
         </div>
-        <form action="/api/auth/logout" method="POST">
-          <button
-            type="submit"
-            className="w-full px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition text-center"
-          >
-            خروج
-          </button>
-        </form>
+        <LogoutButton
+          className="w-full px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-800 hover:text-white transition text-center"
+        />
       </div>
     </aside>
   );
