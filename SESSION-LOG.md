@@ -1182,3 +1182,60 @@ Duplicate singleton patterns في serverless Next.js من أخطر الـ anti-p
 **بعد إنجاز Vault (~6 أيام):** نعود لـ COE Schema (القرار المعماري Event Sourcing + projections جاهز للتنفيذ).
 
 ---
+
+---
+
+## 📅 جلسة 2026-04-23 (مساءً) — RSL Ideas Vault Day 1
+
+### ✅ ما أُنجز
+
+**Database Layer:**
+- 5 جداول: Meeting, Transcript, ActionItem, Idea, Decision
+- 6 enums: MeetingSource, MeetingStatus, Priority, TaskStatus, IdeaCategory, IdeaStatus
+- 12 indexes + 4 foreign keys (ON DELETE CASCADE)
+- Migration: 20260423185349_add_rsl_vault_models
+- Backup آمن: /tmp/rsl-db-backup-20260423-184901.sql
+
+**Security Layer:**
+- src/lib/rsl-allowlist.ts — hardcoded allowlist (همام + علي)
+- /rsl-vault/layout.tsx — two-layer auth (JWT + allowlist)
+- حتى SUPER_ADMIN خارج الـ allowlist يُرفض
+
+**UI Layer:**
+- layout.tsx معزول (ليس ERPSidebar — قصداً)
+- page.tsx — Day 1 placeholder مع build progress
+- لا زر في / للمستودع (discretion للعرض)
+
+### 🐛 دروس من الجلسة
+
+1. DB credentials: لا تفترض user=postgres — استخرج من URL
+2. Prisma migrate diff: --from-url للـ forward migration
+3. لا تطبع DATABASE_URL حتى masked
+4. Security through obscurity ليس أمن، لكن طبقة valid لـ admin tools
+
+### 📊 Git
+
+- Commit: 45ac6c0
+- Files: 5 (+511 / -7)
+- TypeScript: clean
+- Cloud Build: SUCCESS
+- Production test: ✅ تم التأكيد من همام
+
+### 🎯 Day 2 (غداً) — Google Drive OAuth
+
+Setup خارجي (قبل الكود):
+1. Google Cloud Console → Enable Drive API
+2. OAuth consent + scope drive.readonly
+3. Create OAuth Client ID (web)
+4. Save Client ID + Secret في Secret Manager
+
+الكود:
+1. src/lib/google-drive.ts
+2. /api/rsl-vault/oauth/connect
+3. /api/rsl-vault/oauth/callback
+4. /api/rsl-vault/drive/sync (polling)
+5. OAuthToken model في schema
+
+**ابدأ Day 2 بـ:** اقرأ SESSION-LOG.md. اليوم Day 2: Google Drive OAuth.
+
+---
