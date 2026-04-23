@@ -1026,3 +1026,99 @@ data: {
 **هذا مستوى السلوك المتوقع من مهندسين Senior في SaaS production.**
 
 ---
+
+---
+
+## 📅 جلسة 2026-04-23 — UX Navigation Fixes + Logout Flow + Performance Win
+
+### ✅ ما أُنجز
+
+**1. Navigation UX — 5 bug fixes (commit سابق)**
+- login-history: زر العودة يوجّه لـ `/erp/settings` (كان يوجّه لـ `/erp`)
+- change-password: breadcrumb "الإعدادات" صار link
+- change-password: success redirect يوجّه لـ `/erp/settings`
+- change-password: نص رسالة النجاح يذكر "مركز الإعدادات"
+- change-password: زر إلغاء يوجّه لـ `/erp/settings`
+
+**2. Logout Flow — Proper Implementation**
+- commit: `feat(auth): proper logout flow with audit logging`
+- `/api/auth/logout` الآن يسجّل `AuthEventType.LOGOUT` في audit log (أول مرة!)
+- component جديد مشترك: `src/components/auth/LogoutButton.tsx`
+- ERPSidebar يستخدم LogoutButton (redirect إلى `/`)
+- Investor page يستخدم LogoutButton (redirect إلى `/`)
+- حل bug UX: logout ما عاد يعرض JSON خام في المتصفح
+- اكتشاف: لا يوجد مسار `/auth/login` — الصفحة الرئيسية `/` تخدم login/register/landing
+- commit إصلاح: `fix(auth): redirect to root (/) after logout`
+
+**3. Performance Win 🚀 — Prisma Duplicate Singleton**
+- commit: `perf(audit): use shared Prisma singleton from db.ts`
+- اكتشاف: `audit.ts` كان ينشئ PrismaClient ثاني منفصل عن `db.ts`
+- التأثير: connection pool مكرر لكل Cloud Run instance
+- الإصلاح: استخدام shared prisma من `./db.ts`
+- النتيجة المؤكدة: **navigation سريع ملحوظ** (تأكيد من همام)
+- توفير ~50% من Cloud SQL connections
+
+### 🎯 قرارات معمارية محسومة لـ COE
+
+- **MFA:** 100% شغّال في production (مؤكد)
+- **OperationLog:** Event Sourcing + projection tables (الخيار النهائي)
+  - السبب: audit trail كامل + يدعم طبقات COE الأربع + قصة المستثمرين
+  - trade-off المعالج: projection tables للـ reads السريعة
+
+### 🐛 Bugs المكتشفة اليوم
+
+| # | الموقع | الشدة | النوع |
+|---|---|---|---|
+| 1-5 | login-history + change-password | متوسطة | UX navigation |
+| 6 | logout endpoint | متوسطة | يعرض JSON خام بدل redirect |
+| 7 | logout endpoint | عالية | ما يسجّل LOGOUT في audit |
+| 8 | audit.ts | **حرجة** | Prisma duplicate singleton (performance) |
+
+### 📁 ملفات جديدة / متعدّلة
+
+**جديدة:**
+- `src/components/auth/LogoutButton.tsx` (reusable logout component)
+
+**متعدّلة:**
+- `src/app/api/auth/logout/route.ts` (+audit logging)
+- `src/app/investor/page.tsx` (uses LogoutButton)
+- `src/components/erp/ERPSidebar.tsx` (uses LogoutButton + cleaned up)
+- `src/lib/audit.ts` (uses shared Prisma singleton)
+- `src/app/erp/settings/login-history/page.tsx` (back button fix)
+- `src/app/erp/settings/change-password/page.tsx` (navigation fixes)
+
+### 📊 Git Activity
+
+- **3 commits, 3 successful pushes** (all auto-deployed via Cloud Build)
+- TypeScript clean (`npx tsc --noEmit` بدون أخطاء)
+- كل commit يحل مشكلة محددة (نظافة في الـ commit discipline)
+
+### 🎯 الخطوة التالية (الجلسة القادمة)
+
+**الأولوية الأعلى — Month 1 Critical:**
+
+1. **COE Schema** (OperationLog + ProcessRule + WorkflowTemplate + projection tables)
+   - ⏱️ 2-3 ساعات (جلسة مخصصة كاملة)
+   - 💡 قرارات Event Sourcing + projections جاهزة للتنفيذ
+   - 💡 يحتاج عقل منتعش — ليس تكملة لجلسة bug fixes
+
+2. **COE Core Engine** (Receive + Validate + Route operations)
+   - ⏱️ يوم كامل
+   - 💡 يأتي بعد Schema مباشرة
+
+3. **30 SOPs للمختبرات** (موازي — عمل همام)
+   - ⏱️ متوسط SOP ~30 دقيقة × 30 = ~15 ساعة موزّعة على Month 1
+   - 💡 ابدأ بـ 2-3 SOPs عيّنة لتوجيه تصميم Knowledge Library schema في M2
+   - اقتراحات للبداية: "استلام عينة مختبر"، "إصدار تقرير CBC"، "معايرة جهاز تحليل"
+
+### 🧠 ملاحظات هندسية
+
+**Engineering Judgment ممتاز من همام اليوم:**
+- اكتشاف تلقائي لبطء navigation (شعور بالـ UX قبل القياس)
+- طلب فحص للأداء بدل الانتقال لمهمة جديدة
+- النتيجة: bug أداء خطير كان سيصبح أسوأ مع كل module جديد يستعمل audit
+
+**درس معماري عام:**
+Duplicate singleton patterns في serverless Next.js من أخطر الـ anti-patterns. كل `new PrismaClient()` في أي ملف = connection pool كامل. القاعدة الذهبية: **one singleton in db.ts, everyone imports from it**.
+
+---
