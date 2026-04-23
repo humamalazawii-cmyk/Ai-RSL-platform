@@ -221,7 +221,7 @@ export default function LoginHistoryPage() {
             </p>
           </div>
           <Link
-            href="/erp"
+            href="/erp/settings"
             style={{
               padding: '8px 16px',
               background: '#1E293B',
@@ -232,7 +232,7 @@ export default function LoginHistoryPage() {
               fontSize: '14px',
             }}
           >
-            ← العودة للوحة القيادة
+            ← العودة لمركز الإعدادات
           </Link>
         </div>
 

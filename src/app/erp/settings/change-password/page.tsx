@@ -149,7 +149,7 @@ export default function ChangePasswordPage() {
       setLoading(false);
 
       setTimeout(() => {
-        router.push('/erp');
+        router.push('/erp/settings');
         router.refresh();
       }, 2000);
     } catch {
@@ -169,7 +169,7 @@ export default function ChangePasswordPage() {
             تم التحديث بنجاح!
           </h1>
           <p className="text-slate-400 mb-6">
-            تم تغيير كلمة المرور. سيتم توجيهك إلى لوحة القيادة...
+            تم تغيير كلمة المرور. سيتم توجيهك إلى مركز الإعدادات...
           </p>
           <div className="w-8 h-8 mx-auto border-4 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
@@ -186,7 +186,7 @@ export default function ChangePasswordPage() {
             لوحة القيادة
           </Link>
           <span>›</span>
-          <span>الإعدادات</span>
+          <Link href="/erp/settings" className="hover:text-teal-400 transition">الإعدادات</Link>
           <span>›</span>
           <span className="text-slate-200">تغيير كلمة المرور</span>
         </div>
@@ -369,7 +369,7 @@ export default function ChangePasswordPage() {
             )}
           </button>
           <Link
-            href="/erp"
+            href="/erp/settings"
             className="btn-ghost flex items-center justify-center px-8"
           >
             إلغاء
