@@ -1122,3 +1122,63 @@ data: {
 Duplicate singleton patterns في serverless Next.js من أخطر الـ anti-patterns. كل `new PrismaClient()` في أي ملف = connection pool كامل. القاعدة الذهبية: **one singleton in db.ts, everyone imports from it**.
 
 ---
+
+---
+
+## 📌 قرار نهاية الجلسة 2026-04-23 — مستودع أفكار RSL
+
+### القرار
+بناء **مستودع أفكار RSL** — أداة داخلية لهمام وعلي لتحليل الاجتماعات وإدارة الأفكار التي تؤثر على roadmap.
+
+### المواصفات المحسومة
+
+| القرار | الاختيار |
+|---|---|
+| النوع | أداة داخلية (ليست feature للعملاء) |
+| المستخدمون | همام + علي فقط (email allowlist) |
+| المكان | صفحة جديدة `/rsl-vault` — بجانب المستثمرين والموظفين في `/` |
+| العزل | منفصلة تماماً عن `/erp/*` و `/investor/*` — Multi-tenant ready |
+| Platform | Google Meet |
+| اللغة | خليط عربي + إنجليزي (code-switching) |
+| Speech-to-Text | OpenAI Whisper API ($0.006/دقيقة) |
+| LLM | Claude API |
+| Drive Integration | Auto-detect (OAuth + polling) |
+
+### المخرجات الأربعة من كل اجتماع
+1. ملخص تنفيذي
+2. Action items (من، ماذا، متى)
+3. Roadmap ideas (features جديدة، تعديلات)
+4. Decisions (من قرر، ماذا، متى)
+
+### Database Schema (5 models)
+- `Meeting` — metadata + status + participants
+- `Transcript` — full text + segments مع timestamps
+- `ActionItem` — مع sourceQuote و timestamp للتتبع
+- `Idea` — مع category + proposedMonth لربط الـ roadmap
+- `Decision` — مع decidedBy للمساءلة
+
+### التكلفة الشهرية المتوقعة
+~$8-11/شهر (8 اجتماعات × 60 دقيقة)
+
+### خطة التنفيذ (6 أيام)
+| اليوم | المحتوى |
+|---|---|
+| Day 1 | Schema + migration + Cloud Storage + email allowlist |
+| Day 2 | Google Drive OAuth + auto-detect recordings |
+| Day 3 | Whisper transcription queue |
+| Day 4 | Claude API — 4 parallel analyses + Arabic prompts |
+| Day 5 | Landing card + Vault dashboard + Meeting detail UI |
+| Day 6 | Testing + polish + first real meeting test |
+
+### Roadmap Update
+- Roadmap v7.7 → **v7.8**
+- 11 مهمة جديدة (#174-184) أُضيفت لـ Month 1
+- RSL Vault أُضيف كـ row في 6-Month Sprint
+
+### 🎯 الخطوة التالية للجلسة القادمة
+
+**ابدأ بـ:** "اقرأ SESSION-LOG.md. اليوم نبدأ Day 1 من RSL Ideas Vault: Database schema + migration + Cloud Storage + email allowlist middleware."
+
+**بعد إنجاز Vault (~6 أيام):** نعود لـ COE Schema (القرار المعماري Event Sourcing + projections جاهز للتنفيذ).
+
+---
