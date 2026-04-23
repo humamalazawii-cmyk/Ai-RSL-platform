@@ -12,7 +12,7 @@ type Props = {
 
 export default function LogoutButton({
   className = 'btn-ghost text-sm',
-  redirectTo = '/auth/login',
+  redirectTo = '/',
   label = 'خروج',
   loadingLabel = 'جاري تسجيل الخروج...',
 }: Props) {
