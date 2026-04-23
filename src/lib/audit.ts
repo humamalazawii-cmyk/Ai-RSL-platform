@@ -99,21 +99,8 @@ export async function logMFAChallengeFailure(
  * flows continue even if audit logging is broken.
  */
 
-import { PrismaClient, AuthEventType, Prisma } from '@prisma/client';
-
-// ============================================
-// Prisma Client (Singleton)
-// ============================================
-
-// Reuse a single client across invocations in the same process.
-// In serverless, this pattern avoids connection exhaustion.
-let prisma: PrismaClient | null = null;
-
-function getPrisma(): PrismaClient {
-  if (prisma) return prisma;
-  prisma = new PrismaClient();
-  return prisma;
-}
+import { AuthEventType, Prisma } from '@prisma/client';
+import { prisma } from './db';
 
 // ============================================
 // Event Logging Interface
@@ -137,9 +124,9 @@ export interface LogEventParams {
  */
 export async function logAuthEvent(params: LogEventParams): Promise<boolean> {
   try {
-    const db = getPrisma();
+    // Use shared prisma singleton from db.ts
 
-    await db.authEvent.create({
+    await prisma.authEvent.create({
       data: {
         eventType: params.eventType,
         success: params.success,
@@ -360,8 +347,8 @@ export async function getUserAuthHistory(
   limit: number = 50
 ) {
   try {
-    const db = getPrisma();
-    return await db.authEvent.findMany({
+    // Use shared prisma singleton from db.ts
+    return await prisma.authEvent.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -381,10 +368,10 @@ export async function countRecentFailedLogins(
   withinMinutes: number = 15
 ): Promise<number> {
   try {
-    const db = getPrisma();
+    // Use shared prisma singleton from db.ts
     const since = new Date(Date.now() - withinMinutes * 60 * 1000);
 
-    return await db.authEvent.count({
+    return await prisma.authEvent.count({
       where: {
         email: email.toLowerCase(),
         eventType: AuthEventType.LOGIN_FAILURE,
