@@ -123,17 +123,17 @@ model PasswordResetToken {
 // SECURITY: Auth Events (Audit Log)
 // ============================================
 model AuthEvent {
-  id        String        @id @default(cuid())
+  id             String        @id @default(cuid())
   userId         String?
   user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   organizationId String?
   email          String?
-  eventType AuthEventType
-  success   Boolean
-  ip        String?
-  userAgent String?       @db.Text
-  metadata  Json?
-  createdAt DateTime      @default(now())
+  eventType      AuthEventType
+  success        Boolean
+  ip             String?
+  userAgent      String?       @db.Text
+  metadata       Json?
+  createdAt      DateTime      @default(now())
 
   @@index([userId])
   @@index([email])
@@ -283,4 +283,180 @@ model UnitOfMeasure {
   nameEn         String?
   conversionRate Decimal     @default(1) @db.Decimal(18, 6)
   isBase         Boolean     @default(false)
+}
+
+// ============================================
+// RSL IDEAS VAULT (Internal tool — Humam + Ali only)
+// ============================================
+// Meeting recording → Whisper transcription → Claude analysis
+// Outputs: summary + action items + roadmap ideas + decisions
+
+model Meeting {
+  id              String   @id @default(cuid())
+  title           String
+  meetingDate     DateTime
+  durationMinutes Int?
+
+  // Source
+  source      MeetingSource @default(GOOGLE_MEET)
+  sourceId    String? // Google Meet ID
+  driveFileId String? // Google Drive file ID
+
+  // Files in Cloud Storage
+  audioUrl String?
+  videoUrl String?
+
+  // Processing
+  status           MeetingStatus @default(UPLOADED)
+  errorMessage     String?       @db.Text
+  detectedLanguage String? // "ar", "en", "mixed"
+
+  // Participants: [{name, email, speakingTimeMs}]
+  participants Json?
+
+  // Analysis outputs
+  summary String? @db.Text
+
+  // Relations
+  transcript  Transcript?
+  actionItems ActionItem[]
+  ideas       Idea[]
+  decisions   Decision[]
+
+  // Audit
+  createdBy String // user email
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([meetingDate])
+  @@index([status])
+  @@index([createdBy])
+}
+
+model Transcript {
+  id        String  @id @default(cuid())
+  meetingId String  @unique
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  fullText String @db.Text
+  // Segments: [{speaker, start, end, text, language}]
+  segments Json
+
+  whisperModel String   @default("whisper-1")
+  createdAt    DateTime @default(now())
+}
+
+model ActionItem {
+  id        String  @id @default(cuid())
+  meetingId String
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  text     String     @db.Text
+  assignee String? // Name or email
+  dueDate  DateTime?
+  priority Priority   @default(MEDIUM)
+  status   TaskStatus @default(OPEN)
+
+  // Source tracking (for verification)
+  sourceQuote     String? @db.Text
+  sourceTimestamp Int? // Seconds into recording
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([meetingId])
+  @@index([status])
+  @@index([assignee])
+}
+
+model Idea {
+  id        String  @id @default(cuid())
+  meetingId String
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String       @db.Text
+  category    IdeaCategory
+  tags        String[]
+
+  // Roadmap integration
+  proposedMonth String? // e.g., "Month 2", "Month 3"
+  priority      Priority   @default(MEDIUM)
+  status        IdeaStatus @default(PROPOSED)
+
+  // Source tracking
+  sourceQuote     String? @db.Text
+  sourceTimestamp Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([meetingId])
+  @@index([category])
+  @@index([status])
+}
+
+model Decision {
+  id        String  @id @default(cuid())
+  meetingId String
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  text      String  @db.Text
+  decidedBy String? // Who made the decision
+  category  String? // TECHNICAL, BUSINESS, STRATEGIC, etc.
+
+  // Source tracking
+  sourceQuote     String? @db.Text
+  sourceTimestamp Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([meetingId])
+}
+
+// ============================================
+// VAULT ENUMS
+// ============================================
+
+enum MeetingSource {
+  GOOGLE_MEET
+  MANUAL_UPLOAD
+  ZOOM
+}
+
+enum MeetingStatus {
+  UPLOADED // File received, waiting to process
+  TRANSCRIBING // Whisper processing
+  ANALYZING // Claude analyzing transcript
+  READY // All analysis complete
+  FAILED // Something went wrong
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TaskStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum IdeaCategory {
+  FEATURE // New product feature
+  BUG // Bug fix
+  IMPROVEMENT // Enhancement to existing
+  STRATEGIC // Business/market strategy
+  ARCHITECTURE // Technical architecture
+}
+
+enum IdeaStatus {
+  PROPOSED // Just captured
+  APPROVED // Accepted for roadmap
+  REJECTED // Decided against
+  IMPLEMENTED // Already built
 }
