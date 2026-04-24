@@ -1486,3 +1486,33 @@ Day 4 Claude integration يصير **أعمق** من المخطط أصلاً:
 - بعد Month 2 (COE Layers), Vault يصير ذكي أكثر تلقائياً
 
 ---
+
+---
+
+## 📌 بند مؤجّل — UI Design Session
+
+**متى:** بعد Day 6 (نهاية Month 1)
+
+**المدة المقدّرة:** 2-3 ساعات جلسة مخصّصة
+
+**النطاق:** تنسيق الواجهات وتوحيد التصميم عبر:
+- ERP (Sidebar + Topbar)
+- Vault (Header + Cards)
+- Investor Dashboard (future)
+
+**أسئلة Framing يجب الإجابة عليها:**
+1. الجمهور: موظفو المختبر، المستثمرون، أم الاثنان؟
+2. الإلهام البصري (Linear / Notion / Stripe / Anthropic / غيرها)
+3. Light / Dark / Toggle / Auto
+4. brand colors — هل teal الحالي نهائي؟
+5. Sidebar: visible / collapsible / drawer
+6. Topbar: بسيط / غني / وظيفي
+7. Icons library: lucide / heroicons / custom
+8. Mobile strategy
+
+**سبب التأجيل:**
+- قرارات التصميم تؤثر على كل صفحة مستقبلية
+- النقاش يستحق عقل صافٍ (ليس بعد 5 ساعات عمل)
+- إعادة التصميم لاحقاً = تكلفة عالية
+
+---
