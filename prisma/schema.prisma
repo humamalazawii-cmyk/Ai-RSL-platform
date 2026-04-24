@@ -460,3 +460,44 @@ enum IdeaStatus {
   REJECTED // Decided against
   IMPLEMENTED // Already built
 }
+
+// ============================================
+// OAUTH TOKENS (for Google Drive integration in RSL Vault)
+// ============================================
+// Stores access + refresh tokens for each user who connects Google Drive.
+// Tokens are encrypted at rest (see src/lib/oauth-crypto.ts).
+// One row per (userEmail + provider) combination.
+
+model OAuthToken {
+  id String @id @default(cuid())
+
+  // Owner
+  userEmail String // From RSL-AI session (must be in RSL_INTERNAL_EMAILS)
+  provider  OAuthProvider @default(GOOGLE)
+
+  // Encrypted tokens (AES-256-GCM)
+  accessToken  String @db.Text // encrypted
+  refreshToken String @db.Text // encrypted
+
+  // Token lifecycle
+  scope     String // e.g., "https://www.googleapis.com/auth/drive.readonly"
+  expiresAt DateTime // access token expiry (refresh before this)
+  tokenType String   @default("Bearer")
+
+  // Provider account metadata
+  providerEmail String? // Which Google account they connected (e.g., rslai.vault@gmail.com)
+
+  // Audit
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  lastUsedAt DateTime? // Last time we used this token for API calls
+
+  @@unique([userEmail, provider])
+  @@index([userEmail])
+  @@index([expiresAt])
+}
+
+enum OAuthProvider {
+  GOOGLE
+  // Future: MICROSOFT, ZOOM, etc.
+}
