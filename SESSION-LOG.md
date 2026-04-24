@@ -1413,3 +1413,76 @@ Setup خارجي (قبل الكود):
 - **Total:** ~4.5 ساعات
 
 ---
+
+---
+
+## 🎯 قرار معماري مهم — 2026-04-24 (بعد Day 2 complete)
+
+### تحديد نطاق Vault الدقيق
+
+بعد مناقشة مع همام، تحدّد نطاق Vault بدقة:
+
+**Vault ليس مخزن أفكار خام — هو ورشة دراسة وتحويل.**
+
+### الـ Flow النهائي
+### Implementation Plan Output Schema
+
+كل فكرة مقبولة تخرج من Vault بهذه الحقول:
+
+```yaml
+Feature: <title>
+Target Month: M1-M6 (في roadmap v7.8)
+Dependencies: [prerequisites]
+Subtasks:
+  - [Week X] Task 1 (N hrs)
+  - [Week X] Task 2 (N hrs)
+Total effort: X hours
+Monthly cost: $X API + $X infra
+Proposed price: $X/month
+Acceptance criteria: [measurable]
+Risks: [tech/legal/scope]
+Revenue potential: $X-Y annually
+Priority score: X/10
+Source: Meeting YYYY-MM-DD @ mm:ss
+```
+
+### لماذا هذا التصميم
+
+**1. Quality gate:** لا شيء يصل للـ Roadmap الرسمي بدون موافقة صريحة + تحليل كامل.
+
+**2. Cost control:** كل فكرة تمر بـ cost/benefit analysis قبل الاستثمار.
+
+**3. Investor narrative:** الـ roadmap يبقى نظيف ومبني على قرارات واعية (ليس AI dump).
+
+**4. Business rigor:** Humam financial consultant — التحليل يتبع معايير business analyst حقيقية.
+
+### Context/Knowledge Library — بناء تدريجي
+
+Vault يحتاج context عن RSL-AI ليحلّل بدقة:
+- Current state (stack, capabilities)
+- Constraints (3-4 hrs/day, pre-funding)
+- Roadmap v7.8 (Month 1-6 plan)
+- Pricing tiers
+- Competitor analysis
+- Customer pipeline
+
+**القرار:** نبني هذا تدريجياً. Day 4 يستخدم context memory + roadmap Excel. عندما COE جاهز (Month 2), نربطه بـ Vault.
+
+### التداعيات على Day 4 Plan
+
+Day 4 Claude integration يصير **أعمق** من المخطط أصلاً:
+- 4 analyses parallel بدل تحليل واحد
+- يحتاج context injection من roadmap v7.8
+- يحتاج pricing reference
+- output format = structured implementation plan (ليس نص حر)
+
+**لم يتأخر timeline** — فقط الـ prompts أكثر تعقيداً.
+
+### العلاقة مع COE Vision
+
+هذا يؤكّد أن **Vault = أول use case لـ COE Brain**:
+- COE يحتوي Knowledge Library
+- Vault يستعلم COE ليحلّل الأفكار
+- بعد Month 2 (COE Layers), Vault يصير ذكي أكثر تلقائياً
+
+---
