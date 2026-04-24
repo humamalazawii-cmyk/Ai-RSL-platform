@@ -1239,3 +1239,177 @@ Setup خارجي (قبل الكود):
 **ابدأ Day 2 بـ:** اقرأ SESSION-LOG.md. اليوم Day 2: Google Drive OAuth.
 
 ---
+
+---
+
+## 📅 جلسة 2026-04-24 — RSL Ideas Vault Day 2 (Google Drive OAuth)
+
+### ✅ ما أُنجز
+
+**Setup في Google Cloud Console (~30 دقيقة):**
+- Google Drive API enabled
+- OAuth consent screen (Testing mode, External)
+- OAuth Client: `284761901690-hpu02j1p8ffitlr8op2l55369ccd03o3`
+- Test user: rslai.vault@gmail.com (حساب Gmail جديد مخصص لـ RSL)
+- Client ID + Secret محفوظين في Secret Manager:
+  - `google-oauth-client-id`
+  - `google-oauth-client-secret`
+- Cloud Run service account عنده access للـ secrets
+
+**Database Layer:**
+- جدول جديد: OAuthToken (encrypted tokens + metadata)
+- Enum جديد: OAuthProvider (GOOGLE)
+- Unique constraint: (userEmail, provider)
+- 3 indexes: userEmail, expiresAt, unique composite
+- Migration: 20260424193334_add_oauth_token
+
+**Security Layer (AES-256-GCM Token Encryption):**
+- ملف جديد: src/lib/oauth-crypto.ts (81 سطر)
+- HKDF key derivation من JWT_SECRET (separation of concerns)
+- IV عشوائي لكل encryption (non-deterministic)
+- Authenticated encryption (GCM tag = integrity)
+
+**OAuth Core Library (google-drive.ts — 265 سطر):**
+- `generateAuthUrl(state)` — CSRF-protected auth URL
+- `exchangeCodeForTokens(code)` — code → tokens + userinfo
+- `saveTokens(userEmail, tokens)` — encrypted upsert to DB
+- `getAuthenticatedDriveClient(userEmail)` — auto-refresh Drive client
+- `getConnectionStatus(userEmail)` — UI state check
+- `disconnectDrive(userEmail)` — revoke + delete
+
+**API Endpoints (4 endpoints, all allowlist-protected):**
+- GET /api/rsl-vault/oauth/connect — بدء OAuth + CSRF state cookie
+- GET /api/rsl-vault/oauth/callback — CSRF verify + code exchange + save
+- GET /api/rsl-vault/oauth/status — UI polling
+- POST /api/rsl-vault/oauth/disconnect — delete tokens
+
+**UI Layer:**
+- src/components/rsl-vault/DriveConnection.tsx (client component)
+  - حالة غير متصل: زر Connect أزرق
+  - حالة متصل: card أخضر مع email + dates + disconnect
+- src/app/rsl-vault/page.tsx محدّث:
+  - Banner أخضر: ?connected=1
+  - Banner أحمر: ?error=...
+  - Integration مع DriveConnection
+
+**Dependencies:**
+- googleapis (Google official SDK)
+- google-auth-library (OAuth 2.0 client)
+- 36 packages installed total
+
+### 🐛 Bugs + دروس من الجلسة
+
+**1. Env vars لم تُربط أول مرة:**
+- عملت `gcloud run services update --update-secrets` قبل `git push`
+- Cloud Build بنى revision جديد بدون الـ env vars
+- Error: "GOOGLE_OAUTH_CLIENT_ID not set"
+- الحل: أعدت `gcloud run services update` بعد الـ build
+- **الدرس:** Secrets mapping لازم يُطبّق بعد كل Cloud Build. للمستقبل: نضيف env vars إلى Cloud Build config
+
+**2. Scope incomplete في أول OAuth flow:**
+- أول ربط نجح لكن الـ scope كان فقط `userinfo.email openid` (بدون drive.readonly!)
+- السبب: Google consent screen عرض صلاحية Sign-in فقط، لم يعرض Drive scope
+- اكتشفته بـ query على DB: `SELECT scope FROM OAuthToken`
+- الحل:
+  1. فصل من RSL-AI (DriveConnection disconnect button)
+  2. إلغاء الصلاحية من https://myaccount.google.com/permissions → "Delete all connections"
+  3. ربط جديد → ظهرت صلاحية Drive + قبلناها
+  4. تحقق: الـ scope الآن يحتوي `drive.readonly` ✓
+- **الدرس المعماري:** دائماً تحقق من الـ DB بعد OAuth flow، ليس فقط من الـ UI. الـ scope قد ينجح جزئياً
+
+**3. HTTP 500 على callback بعد refresh:**
+- بعد نجاح الربط، ضغطنا Refresh على صفحة callback
+- Error: state cookie مستهلك (one-time use) — سلوك أمني صحيح
+- **الدرس:** ليس bug، بل حماية CSRF تعمل صحيح
+
+**4. Prisma migrate diff direction:**
+- أول أمر استخدم `--from-schema-datamodel --to-schema-datasource` = عكسي
+- عرض DROP operations للجداول الجديدة
+- الصحيح: `--from-url --to-schema-datamodel` = forward migration
+- **الدرس:** `--from-url = الحالة الحالية (DB)`, `--to-schema-datamodel = الهدف`
+
+**5. Buffer type assertion خطأ:**
+- `crypto.hkdfSync()` يرجع `ArrayBuffer` في types الجديدة
+- TS2352: cast `as Buffer` فشل
+- الحل: `Buffer.from(derived as ArrayBuffer)`
+
+### 📊 Git Activity
+
+- **Commit:** 7f59b2e — "feat(vault): Google Drive OAuth integration — Day 2"
+- **Files changed:** 12
+- **Lines:** +1322 / -27
+- **TypeScript:** Clean (npx tsc --noEmit نظيف)
+- **Cloud Build:** SUCCESS (5m 51s)
+- **Cloud Run revisions:** 00052 → 00053 → 00054 (منشور حالياً)
+- **Production test:** ✅ End-to-end OAuth مع drive.readonly scope
+
+### 🎯 Day 3 (غداً) — OpenAI Whisper Transcription
+
+**Setup خارجي (قبل الكود):**
+1. OpenAI account (platform.openai.com)
+2. Add credit (~$5 minimum)
+3. Create API key
+4. Save في Secret Manager كـ `openai-api-key`
+5. ربط الـ secret بـ Cloud Run
+
+**الكود المطلوب:**
+1. `src/lib/openai-whisper.ts` — helper للـ transcription
+2. `/api/rsl-vault/transcribe` — POST endpoint
+3. Integration مع meeting workflow:
+   - Drive file download (baked already via google-drive.ts)
+   - Convert video → audio if needed (ffmpeg)
+   - Whisper API call (arabic + english mixed)
+   - Save Transcript row في DB
+   - Update Meeting status: UPLOADED → TRANSCRIBING → ANALYZING/FAILED
+4. Queue strategy: synchronous (Day 3) أو background job (Day 3+)
+5. Polling status من UI
+
+**الوقت المتوقع:** ~2-3 ساعات كود + setup
+
+**ابدأ Day 3 بـ:**
+### 🧠 ملاحظات هندسية
+
+**engineering judgment من همام اليوم:**
+- اكتشاف تلقائي لمشكلة الـ scope (طلب التحقق قبل إنهاء الجلسة)
+- قرار "نفصل من Google أيضاً، ليس فقط RSL-AI" كان correct — security fundamentals
+- إضافة formatting preference للذاكرة (widgets → نص بسيط) = تحسين UX مستمر
+
+**Production-ready patterns تم اعتمادها:**
+- AES-256-GCM للـ secrets at rest
+- HKDF key derivation (لا نعيد استخدام JWT key)
+- CSRF state cookie مع one-time use
+- Defense in depth (allowlist في layout + كل endpoint)
+- Auto-refresh listener يحفظ new access_token
+- Error messages في query params بدل exceptions
+- Base64url للـ state (URL-safe)
+
+**إضافات للـ user memories:**
+- Preference: خيارات بنص بسيط (أ/ب/ج) بدل interactive widgets
+
+### 📦 الملفات الجديدة / المعدّلة
+
+**جديدة (8 ملفات):**
+- prisma/migrations/20260424193334_add_oauth_token/migration.sql
+- src/lib/oauth-crypto.ts
+- src/lib/google-drive.ts
+- src/app/api/rsl-vault/oauth/connect/route.ts
+- src/app/api/rsl-vault/oauth/callback/route.ts
+- src/app/api/rsl-vault/oauth/status/route.ts
+- src/app/api/rsl-vault/oauth/disconnect/route.ts
+- src/components/rsl-vault/DriveConnection.tsx
+
+**معدّلة (4 ملفات):**
+- prisma/schema.prisma (+41 سطر — OAuthToken + OAuthProvider)
+- src/app/rsl-vault/page.tsx (Day 1 placeholder → Day 2 active)
+- package.json (+ googleapis, google-auth-library)
+- package-lock.json (36 packages added)
+
+### ⏱️ الوقت الفعلي
+
+- Setup external: ~45 دقيقة (including OAuth consent screen + test user)
+- Code writing: ~2.5 ساعة
+- Debugging (env vars + scope): ~45 دقيقة
+- Testing end-to-end: ~30 دقيقة
+- **Total:** ~4.5 ساعات
+
+---
