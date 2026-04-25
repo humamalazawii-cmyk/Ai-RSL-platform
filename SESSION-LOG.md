@@ -1516,3 +1516,23 @@ Day 4 Claude integration يصير **أعمق** من المخطط أصلاً:
 - إعادة التصميم لاحقاً = تكلفة عالية
 
 ---
+
+---
+
+## 📅 جلسة 2026-04-25 — Day 3 (مؤجّلة جزئياً)
+
+### ✅ ما أُنجز
+- OpenAI account created: rslai.vault@gmail.com (Continue with Google)
+- Architectural decisions موثّقة لـ Vault transcription
+- Cost model محدّد: gpt-4o-transcribe @ $0.006/min, hard limit $20/month
+
+### ❌ Blocker
+- ZainCash Mastercard declined على OpenAI/Stripe
+- البطاقة مفعّلة international + USD $15 + passport uploaded
+- لم تُحدّد السبب الفعلي بعد
+
+### 🎯 غداً
+1. SMS check + ZainCash 6698 contact
+2. Plan B (PayPal / Wise / partner card)
+3. كمل Day 3: API key + Secret Manager + Whisper integration
+
