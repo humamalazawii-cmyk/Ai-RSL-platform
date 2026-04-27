@@ -18,7 +18,7 @@ RUN npm run build
 
 # ========== STAGE 3: Runner ==========
 FROM node:20-alpine AS runner
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl ffmpeg
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
