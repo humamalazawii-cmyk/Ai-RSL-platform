@@ -1716,3 +1716,132 @@ finally: cleanupFiles(tempFiles)
 - Trigger: meeting.status = ANALYZING → automatic OR manual button
 
 **ابدأ Day 4 بـ:** "اقرأ SESSION-LOG. اليوم نبدأ Day 4 — Claude analysis."
+
+---
+
+## 📅 جلسة 2026-04-27 (PM) — Day 4 Setup (مكتمل، الكود مؤجّل)
+
+### ✅ ما أُنجز (Setup فقط — الكود في جلسة منفصلة)
+
+**External Setup (Anthropic):**
+- Anthropic account: rslai.vault@gmail.com (Continue with Google)
+- Organization: RSL-AI (Company entity, Iraq)
+- Compliance answers: NO legal/medical advice, NO under-18 users
+- Use case description: Vault transcript analysis + future ERP COE
+- MFA: delegated to Google 2SV (no separate Anthropic MFA — verified `/settings/security` returns 404)
+- Bitwarden entry: "Anthropic Console - RSL-AI Vault"
+
+**Billing:**
+- $10 credit purchased via بطاقة المصرف الأهلي العراقي
+- Stripe Link auto-suggested humamalazawii@gmail.com (rejected → "Pay another way")
+- Hard limit: $20/month
+- Email alerts: $10 (50%), $16 (80%)
+- Auto-reload: OFF
+- Resets: May 1, 2026
+
+**Workspace + API Key:**
+- Workspace: `RSL Vault Analysis` (separate from Default — clean usage tracking)
+- API Key: `rsl-vault-cloudrun-prod` (saved in Bitwarden)
+- Key scope: Workspace-bound
+
+**Cloud Infrastructure:**
+- Secret Manager: `anthropic-api-key` v1
+  - Labels: env=prod, scope=analysis, service=rsl-vault
+  - Replication: automatic
+- IAM binding: Cloud Run SA → roles/secretmanager.secretAccessor
+- Cloud Run: revision `rsl-ai-00063-j5z` (after regression fix)
+- Env vars now: 9 (was 7) — both OPENAI_API_KEY + ANTHROPIC_API_KEY
+
+**SDK Installed:**
+- `@anthropic-ai/sdk` v0.91.1 (4 new packages)
+
+### 🐛 BUG DISCOVERED + FIXED (مهم جداً)
+
+**Regression:** Cloud Run loses `--update-secrets` bindings on every Cloud Build deploy.
+
+**Timeline:**
+1. Morning: revision 00059 had OPENAI_API_KEY (manually bound)
+2. After Day 3 docs push: revision 00060-r5w → ❌ OPENAI_API_KEY DROPPED
+3. Manual fix: revision 00061-dww → ✅ OPENAI + ANTHROPIC both bound
+4. After Day 4 setup push: revision 00062-9qx → ❌ BOTH DROPPED again
+5. Manual fix: revision 00063-j5z → ✅ both bound (current state)
+
+**Root cause:** Cloud Build trigger via `git push` rebuilds Cloud Run service config from Dockerfile, which strips imperatively-set env var secret bindings.
+
+**Workaround (current):** After every git push, run:
+```bash
+gcloud run services update rsl-ai \
+  --region=me-central1 \
+  --update-secrets="OPENAI_API_KEY=openai-api-key:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest"
+```
+
+**Permanent fix (deferred):** Move secret bindings into `cloudbuild.yaml` declaratively, OR adopt `service.yaml` manifest with `gcloud run services replace`. 
+**Decision:** Address in dedicated infra session (not mid-feature).
+
+### 💡 قرارات معمارية للـ Day 4 (ما طُبّق بعد)
+
+**Mixed Model Strategy:**
+
+| Analysis | Model | السبب |
+|----------|-------|-------|
+| Extract (action items, decisions) | Sonnet 4.6 | Pattern recognition |
+| Feasibility (technical viability) | Sonnet 4.6 | Engineering judgment |
+| Impact (revenue, ARPU, market) | Sonnet 4.6 | Business analysis |
+| Implementation Plan | **Opus 4.7** | Most critical output, deepest reasoning |
+
+**Cost estimate (10 meetings/month, ~12K input tokens each):**
+- 3 × Sonnet analyses: ~$2.43/month
+- 1 × Opus analysis: ~$1.35/month
+- Total Claude analysis: ~$3.78/month
+- + Whisper: ~$5.40/month
+- **Total Vault: ~$9.20/month** (within $20 hard limit, 2.2x safety margin)
+
+### 🎯 Day 4 — الكود (Step K) — مؤجّل لجلسة Day 4 الفعلية
+
+**Pending build:**
+- `src/lib/claude-analyzer.ts` — 4 functions, each with Arabic prompt
+- `src/app/api/rsl-vault/analyze/route.ts` — orchestrator
+- YAML output schema (Vault structured analysis output)
+- Business impact framework integration
+- Status flow: ANALYZING → READY/FAILED
+- Error handling + retry logic
+- Smoke test + commit
+- ⚠️ Manual re-bind secrets after push
+
+**Estimated time:** 3-4 hours of focused work (best done with fresh mind)
+
+### 📌 Commits
+
+1. `5404802` — feat(vault): Day 4 infrastructure setup (Anthropic API)
+   - Added @anthropic-ai/sdk v0.91.1
+   - Note: this commit pushed BEFORE SESSION-LOG was updated; current commit fills the gap
+
+### 📊 Technical Debt Added Today
+
+- [ ] **HIGH PRIORITY:** Fix Cloud Build env var regression (declarative deploy)
+- [ ] Document `--update-secrets` workaround in MIGRATION-WORKFLOW.md
+- [ ] Add post-deploy smoke test that exercises secret binding (not just auth check)
+
+### ⏱️ الوقت الفعلي
+
+- Anthropic external setup: ~45 دقيقة
+- Cloud infrastructure (secret + IAM + Cloud Run): ~15 دقيقة
+- Regression discovery + fix #1: ~10 دقائق
+- Regression discovery + fix #2: ~5 دقائق
+- SDK install + verification: ~5 دقائق
+- **Total Day 4 setup: ~80 دقيقة**
+- **Total day work (Day 3 deploy + Day 4 setup): ~5 hours**
+
+### 🛑 Stopping Point
+
+نوقف هنا قبل بناء الـ Claude analyzer code. السبب: الكود يحتاج fresh mind لجودة عالية في الـ prompts.
+
+**ابدأ Day 4 الكود بـ:** "اقرأ SESSION-LOG. اليوم نبدأ Day 4 الكود الفعلي — claude-analyzer.ts + 4 prompts."
+
+**⚠️ تذكّر قبل أول push في الجلسة القادمة:** بعد الـ push، شغّل:
+```bash
+gcloud run services update rsl-ai \
+  --region=me-central1 \
+  --update-secrets="OPENAI_API_KEY=openai-api-key:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest"
+```
+
