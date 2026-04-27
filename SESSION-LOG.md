@@ -1536,3 +1536,183 @@ Day 4 Claude integration يصير **أعمق** من المخطط أصلاً:
 2. Plan B (PayPal / Wise / partner card)
 3. كمل Day 3: API key + Secret Manager + Whisper integration
 
+
+---
+
+## 📅 جلسة 2026-04-27 — Day 3 (مكتملة)
+
+### ✅ ما أُنجز
+
+**External Setup (OpenAI):**
+- OpenAI account: rslai.vault@gmail.com (Continue with Google + 2SV)
+- MFA enabled على OpenAI account (TOTP + 10 recovery codes في Bitwarden)
+- Project: `RSL-AI Vault Transcription` (proj_M191cEsH4Uimr0oKqOiG2JAi)
+- Service account: `rsl-vault-service`
+- API Key: `rsl-vault-cloudrun-prod` (محفوظ في Bitwarden)
+- Old key revoked (security incident — partial key visible in earlier screenshot)
+- Billing: $10 credit مدفوعة من بطاقة المصرف الأهلي العراقي
+- Hard limit: $20/month
+- Alerts: 50% ($10), 80% ($16), 100% ($20)
+
+**Cloud Infrastructure:**
+- Secret Manager: `openai-api-key` v1 (automatic replication)
+- IAM binding: Cloud Run SA → `roles/secretmanager.secretAccessor`
+- Cloud Run revision: `rsl-ai-00059-tnj` (zero-downtime deploy)
+- New env var: `OPENAI_API_KEY` (sourced from `openai-api-key:latest`)
+
+**Code (4 files, 852 lines added):**
+
+| File | Purpose | Lines |
+|------|---------|-------|
+| `src/lib/openai-whisper.ts` (new) | gpt-4o-transcribe wrapper + smart Arabic prompt | 158 |
+| `src/lib/audio-converter.ts` (new) | ffmpeg wrapper (extract + chunk) | 322 |
+| `src/app/api/rsl-vault/transcribe/route.ts` (new) | API endpoint orchestrator | 304 |
+| `src/lib/google-drive.ts` (modified) | Added `downloadDriveFile()` streaming | +68 |
+| `Dockerfile` (modified) | Added ffmpeg to runner stage | +1 |
+| `package.json` (modified) | Added `openai` SDK | +1 |
+
+### 🎯 المعمارية المعتمدة
+
+```
+POST /api/rsl-vault/transcribe { meetingId }
+  ↓
+Auth (RSL allowlist) → Validate meeting (UPLOADED + driveFileId)
+  ↓
+status: UPLOADED → TRANSCRIBING
+  ↓
+google-drive.ts: downloadDriveFile() → /tmp/{id}.mp4 (streaming)
+  ↓
+audio-converter.ts: extractAudio() → /tmp/{id}-audio.m4a (mono 16kbps)
+  ↓
+audio-converter.ts: chunkAudio() → 1+ chunks (≤24MB each, 5s overlap)
+  ↓
+For each chunk: openai-whisper.ts: transcribeAudio() (sequential)
+  ↓
+mergeTranscripts() → fullText + segments JSON
+  ↓
+prisma.transcript.create() + meeting.status = ANALYZING
+  ↓
+finally: cleanupFiles(tempFiles)
+```
+
+### 🧠 قرارات هندسية مهمة
+
+**1. Sequential chunk processing (مش parallel):**
+- Memory: 4 chunks × 24MB = 96MB في memory لو parallel → Cloud Run 512MB يضيق
+- Rate limits: Tier 1 يقبل، لكن audio uploads ثقيلة
+- Order: نحتاج merge مرتب
+- Trade-off: ~10-20% أبطأ مقابل reliability
+
+**2. Lazy OpenAI client singleton:**
+- Top-level `new OpenAI({apiKey: process.env...})` يفشل في build (env var غير موجود وقت build)
+- `getClient()` lazy initialization حل المشكلة بدون workarounds
+
+**3. Streaming Drive downloads:**
+- اجتماع ساعة = ~150MB
+- `arraybuffer` response = OOM crash
+- `stream` response = constant memory regardless of file size
+
+**4. Abstraction layer للـ Day 3.5:**
+- `transcribeAudio()` هو الـ contract الموحد
+- لو Day 6 test أظهر WER >40%، Day 3.5 يضيف Claude cleanup كـ wrapper
+- بدون refactor للـ pipeline
+
+**5. Smart prompting:**
+- 224-token prompt يحوي: RSL vocab, Iraqi dialect hint, English mixing, names
+- يحسّن WER 5-15% للـ technical terms
+- Trade-off: لو الاجتماع عن topic غير متعلق، الـ prompt قد يحرف النتائج (مقبول)
+
+### 🚧 تحديات حصلت اليوم
+
+**1. ZainCash card declined:**
+- Resolved: تم استخدام بطاقة المصرف الأهلي العراقي
+- Lesson: المصرف الأهلي = موثوق لـ international transactions
+- مدّخر للذاكرة لو احتجنا APIs ثانية
+
+**2. API Key partial leak في screenshot:**
+- صورة في chat كشفت بداية الـ key (`sk-svcacct-G1WvIRT5...`)
+- Resolution: revoke فوري + create new
+- Lesson: لا screenshots لشاشات تحوي مفاتيح، حتى مخفية جزئياً
+- اتباع protocol صحيح بدون تردد = engineering maturity
+
+**3. Heredoc paste corruption:**
+- محاولات `cat > file << 'EOF'` انكسرت 2x
+- السبب: chat rendering يفسد characters محددة (markdown auto-link لـ `response.data`، إلخ)
+- Resolution: استخدمنا upload pattern بدلاً
+- Lesson: لـ ملفات >50 سطر، upload أنظف من heredoc
+
+**4. TS error TS18047 (null check):**
+- `getAuthenticatedDriveClient` ترجع `Promise<drive_v3.Drive | null>`
+- كنت ما عالجت الـ null path
+- Resolution: explicit guard بـ throw error واضح
+- Lesson: TypeScript strict mode يكشف bugs مبكراً
+
+### 💰 Cost Model
+
+- Transcription: $0.006/min @ gpt-4o-transcribe
+- Estimated production (10 meetings × 90min/شهر): ~$5.40/month
+- Hard limit $20/month = 3.7x safety margin
+
+### 🎯 Day 6 — Real Meeting Test Plan
+
+عند تشغيل أول اجتماع حقيقي (90 دقيقة، عربية عراقية + إنجليزية):
+
+| Metric | Target | Action if missed |
+|--------|--------|------------------|
+| Pipeline يكمل بدون errors | 100% | Debug + fix |
+| WER على الـ transcript | <40% | Day 3.5: Claude cleanup |
+| Cost per meeting | <$1 | Verify chunk count |
+| Time end-to-end | <5 min | Optimize sequential |
+| Status flow صحيح | UPLOADED→TRANSCRIBING→ANALYZING | Bug في status updates |
+
+### 📦 الملفات المعدّلة / الجديدة
+
+**جديدة (3 ملفات، 784 سطر):**
+- src/lib/openai-whisper.ts (158)
+- src/lib/audio-converter.ts (322)
+- src/app/api/rsl-vault/transcribe/route.ts (304)
+
+**معدّلة (3 ملفات، +70 سطر):**
+- src/lib/google-drive.ts (+68 — downloadDriveFile)
+- Dockerfile (+1 — ffmpeg)
+- package.json (+1 — openai SDK)
+
+### 📌 Commits
+
+1. `b1c908d` — chore: add ffmpeg + openai SDK for Whisper transcription
+2. `6d7f4c2` — feat(vault): add Whisper transcription pipeline
+3. `<this commit>` — docs: complete Day 3 — Whisper transcription
+
+### 📊 Technical Debt (للجلسات القادمة)
+
+- [ ] `npm audit` يبيّن 5 vulnerabilities (4 moderate, 1 high) في Next.js deps. مؤجلة لـ maintenance window مع testing شامل (لا `--force` في منتصف Day 3)
+- [ ] Schema default `whisperModel @default("whisper-1")` قديم — الكود يكتب `gpt-4o-transcribe` صراحةً، لكن الـ default يحتاج update في schema
+- [ ] لا dedup للـ overlap regions في mergeTranscripts() — accept لـ Day 3، Day 4 Claude يقدر يتعامل لو لزم
+
+### ⏱️ الوقت الفعلي
+
+- External setup (OpenAI account + billing + key): ~1.5 ساعة
+- Cloud infra (Secret Manager + Cloud Run): ~30 دقيقة
+- Code (4 files): ~3 ساعات
+- Debugging (paste corruption + TS error + null check): ~45 دقيقة
+- Build test + commits: ~30 دقيقة
+- **Total:** ~6 ساعات (split عبر يومين 25-27 إبريل)
+
+### 🎯 Day 4 (التالي) — Claude API Analysis
+
+**النطاق:** Transcript → 4 parallel analyses
+1. ActionItems extraction
+2. Decisions extraction
+3. Ideas extraction (الـ Vault الحقيقي)
+4. Meeting summary
+
+**Setup خارجي:**
+- Anthropic API key (موجود؟ لو لا، نسوي signup)
+- Add to Secret Manager + Cloud Run
+
+**الكود:**
+- `src/lib/claude-analyzer.ts` (4 prompts منفصلة)
+- `/api/rsl-vault/analyze/route.ts` (orchestrator)
+- Trigger: meeting.status = ANALYZING → automatic OR manual button
+
+**ابدأ Day 4 بـ:** "اقرأ SESSION-LOG. اليوم نبدأ Day 4 — Claude analysis."
