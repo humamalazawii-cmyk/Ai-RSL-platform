@@ -9,6 +9,7 @@
  *   3. saveTokens() → encrypts and saves to DB
  *   4. getAuthenticatedDriveClient() → returns ready-to-use Drive client
  *      (auto-refreshes access token if expired)
+ *   5. downloadDriveFile() → streams file from Drive to local disk
  */
 
 import { google, drive_v3 } from 'googleapis';
@@ -262,4 +263,71 @@ export async function disconnectDrive(userEmail: string): Promise<void> {
     .catch(() => {
       // Ignore if doesn't exist
     });
+}
+
+/**
+ * Download a file from Google Drive to a local path.
+ *
+ * Uses the user's OAuth token (managed by getAuthenticatedDriveClient).
+ * Streams the response to disk instead of buffering in memory —
+ * critical for large meeting recordings (100MB-1GB).
+ *
+ * @param userEmail - Owner of the Drive token
+ * @param fileId - Google Drive file ID
+ * @param destPath - Local path to write to
+ * @returns File size in bytes
+ *
+ * @throws Error if user has no Drive connection, file not found, or download fails
+ */
+export async function downloadDriveFile(
+  userEmail: string,
+  fileId: string,
+  destPath: string
+): Promise<number> {
+  const drive = await getAuthenticatedDriveClient(userEmail);
+
+  if (!drive) {
+    throw new Error(
+      `No Google Drive connection for user ${userEmail}. ` +
+        `User must connect Drive first via /rsl-vault.`
+    );
+  }
+
+  // Stream the file body to disk
+  const response = await drive.files.get(
+    { fileId, alt: 'media' },
+    { responseType: 'stream' }
+  );
+
+  const fs = await import('fs');
+  const writeStream = fs.createWriteStream(destPath);
+
+  return new Promise<number>((resolve, reject) => {
+    let bytesWritten = 0;
+
+    const stream = response.data;
+
+    stream.on('data', (chunk: Buffer) => {
+      bytesWritten += chunk.length;
+    });
+
+    stream.on('error', (err: Error) => {
+      writeStream.destroy();
+      reject(new Error(`Drive download failed: ${err.message}`));
+    });
+
+    stream.pipe(writeStream);
+
+    writeStream.on('error', (err: Error) => {
+      reject(new Error(`Write to disk failed: ${err.message}`));
+    });
+
+    writeStream.on('finish', () => {
+      console.log(
+        `[Drive] Downloaded ${(bytesWritten / 1024 / 1024).toFixed(2)}MB ` +
+          `(file ${fileId}) -> ${destPath}`
+      );
+      resolve(bytesWritten);
+    });
+  });
 }
