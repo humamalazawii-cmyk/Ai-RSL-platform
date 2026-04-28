@@ -331,3 +331,69 @@ export async function downloadDriveFile(
     });
   });
 }
+// ============================================
+// File Listing (Day 5)
+// ============================================
+
+export interface DriveAudioFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdTime: string;
+  modifiedTime: string;
+  webViewLink: string | null;
+  parentFolderId: string | null;
+}
+
+/**
+ * List audio/video files in user's Drive that look like meeting recordings.
+ *
+ * Filters:
+ *   - mime types: audio/* or video/* (m4a, mp3, mp4, webm, etc.)
+ *   - excludes trashed files
+ *   - sorted by modifiedTime DESC (newest first)
+ *   - max 50 results (Drive API default)
+ *
+ * Returns minimal metadata — caller fetches more if needed.
+ */
+export async function listAudioFiles(
+  userEmail: string
+): Promise<DriveAudioFile[]> {
+  const drive = await getAuthenticatedDriveClient(userEmail);
+  if (!drive) {
+    throw new Error(`No Drive connection for ${userEmail}`);
+  }
+
+  // Drive query syntax:
+  //   mimeType contains 'audio' OR contains 'video'
+  //   trashed = false
+  const query = [
+    "(mimeType contains 'audio/' or mimeType contains 'video/')",
+    "trashed = false",
+  ].join(" and ");
+
+  console.log(`[Drive] Listing audio/video files for ${userEmail}`);
+
+  const response = await drive.files.list({
+    q: query,
+    pageSize: 50,
+    orderBy: "modifiedTime desc",
+    fields:
+      "files(id, name, mimeType, size, createdTime, modifiedTime, webViewLink, parents)",
+  });
+
+  const files = response.data.files ?? [];
+  console.log(`[Drive] Found ${files.length} audio/video files`);
+
+  return files.map((f) => ({
+    id: f.id ?? "",
+    name: f.name ?? "(untitled)",
+    mimeType: f.mimeType ?? "application/octet-stream",
+    sizeBytes: f.size ? parseInt(f.size, 10) : 0,
+    createdTime: f.createdTime ?? "",
+    modifiedTime: f.modifiedTime ?? "",
+    webViewLink: f.webViewLink ?? null,
+    parentFolderId: f.parents?.[0] ?? null,
+  }));
+}

@@ -2,12 +2,13 @@ import Link from 'next/link';
 import { getUserSession } from '@/lib/db';
 import { getConnectionStatus } from '@/lib/google-drive';
 import DriveConnection from '@/components/rsl-vault/DriveConnection';
+import RecordingsList from '@/components/rsl-vault/RecordingsList';
 
 /**
  * RSL Vault — Main Dashboard
  * ============================================
  * Day 2: Drive connection management
- * Day 5: Full dashboard with meeting list, filters, search
+ * Day 5: Recordings list + scan + process pipeline
  */
 
 export const dynamic = 'force-dynamic';
@@ -65,7 +66,7 @@ export default async function RSLVaultHome({
 
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm">
           <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
-          قيد البناء — Day 2 من 6
+          قيد البناء — Day 5 من 6
         </div>
       </div>
 
@@ -78,6 +79,13 @@ export default async function RSLVaultHome({
           lastUsedAt={status.lastUsedAt?.toISOString() ?? null}
         />
       </div>
+
+      {/* Recordings List + Pipeline (Day 5) — only shown when Drive connected */}
+      {status.connected && (
+        <div className="mb-8">
+          <RecordingsList />
+        </div>
+      )}
 
       {/* Day-by-day progress */}
       <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 mb-6">
@@ -95,22 +103,22 @@ export default async function RSLVaultHome({
               Day 2: Google Drive OAuth + Auto-detect recordings
             </span>
           </li>
-          <li className="flex items-center gap-3 opacity-50">
-            <span className="text-slate-500">○</span>
-            <span className="text-slate-400">
+          <li className="flex items-center gap-3">
+            <span className="text-emerald-400">✓</span>
+            <span className="text-slate-300">
               Day 3: OpenAI Whisper transcription queue
             </span>
           </li>
-          <li className="flex items-center gap-3 opacity-50">
-            <span className="text-slate-500">○</span>
-            <span className="text-slate-400">
-              Day 4: Claude API — 4 parallel analyses
+          <li className="flex items-center gap-3">
+            <span className="text-emerald-400">✓</span>
+            <span className="text-slate-300">
+              Day 4: Claude API — feasibility + cost analysis
             </span>
           </li>
-          <li className="flex items-center gap-3 opacity-50">
-            <span className="text-slate-500">○</span>
-            <span className="text-slate-400">
-              Day 5: Dashboard UI + Meeting detail page
+          <li className="flex items-center gap-3">
+            <span className="text-emerald-400">✓</span>
+            <span className="text-slate-300">
+              Day 5: Dashboard UI — scan + process + ideas display
             </span>
           </li>
           <li className="flex items-center gap-3 opacity-50">
