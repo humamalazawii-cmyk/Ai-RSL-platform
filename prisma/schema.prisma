@@ -379,6 +379,14 @@ model Idea {
   category    IdeaCategory
   tags        String[]
 
+  // Feasibility analysis (Day 4 — Claude analysis)
+  feasible             Boolean @default(true)
+  feasibilityReasoning String? @db.Text
+
+  // Cost estimation (Day 4 — Claude analysis)
+  estimatedDays        Int?
+  estimatedMonthlyCost Float? @default(0)
+
   // Roadmap integration
   proposedMonth String? // e.g., "Month 2", "Month 3"
   priority      Priority   @default(MEDIUM)
@@ -395,7 +403,6 @@ model Idea {
   @@index([category])
   @@index([status])
 }
-
 model Decision {
   id        String  @id @default(cuid())
   meetingId String
