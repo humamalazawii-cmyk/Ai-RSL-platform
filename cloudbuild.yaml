@@ -33,7 +33,7 @@ steps:
       - '--max-instances=10'
       - '--add-cloudsql-instances=rsl-sys:me-central1:rsl-db'
       - '--set-env-vars=NODE_ENV=production'
-      - '--set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,INVESTOR_PASSWORD=investor-password:latest,UPSTASH_REDIS_REST_URL=upstash-redis-url:latest,UPSTASH_REDIS_REST_TOKEN=upstash-redis-token:latest,RESEND_API_KEY=resend-api-key:latest,OPENAI_API_KEY=openai-api-key:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest'
+      - '--set-secrets=DATABASE_URL=database-url:latest,JWT_SECRET=jwt-secret:latest,INVESTOR_PASSWORD=investor-password:latest,UPSTASH_REDIS_REST_URL=upstash-redis-url:latest,UPSTASH_REDIS_REST_TOKEN=upstash-redis-token:latest,RESEND_API_KEY=resend-api-key:latest,OPENAI_API_KEY=openai-api-key:latest,ANTHROPIC_API_KEY=anthropic-api-key:latest,GOOGLE_OAUTH_CLIENT_ID=google-oauth-client-id:latest,GOOGLE_OAUTH_CLIENT_SECRET=google-oauth-client-secret:latest'
 
 options:
   logging: CLOUD_LOGGING_ONLY
