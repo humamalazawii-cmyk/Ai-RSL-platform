@@ -7,25 +7,23 @@
  *   1. Auth (RSL allowlist)
  *   2. Find or create Meeting row (linked to driveFileId)
  *   3. If status=READY, return existing ideas (idempotent)
- *   4. Otherwise, kick off pipeline:
- *      a. /api/rsl-vault/transcribe (Day 3 — Whisper)
- *      b. /api/rsl-vault/analyze    (Day 4 — Claude)
- *   5. Return final state
+ *   4. If UPLOADED → run transcription (status → ANALYZING)
+ *   5. Run analysis (status → READY)
+ *   6. Return final state
  *
- * This calls the transcribe + analyze endpoints internally via fetch
- * (server-to-server, same Cloud Run instance).
- *
- * Synchronous: client waits for the full pipeline (~1-3 minutes).
+ * NOTE: Calls vault-pipeline helpers DIRECTLY (no self-fetch).
+ * This avoids the Cloud Run SSL handshake issue with self-HTTPS.
  *
  * Body: { driveFileId: string, name?: string }
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getUserSession, prisma } from "@/lib/db";
 import { isRSLInternal } from "@/lib/rsl-allowlist";
+import { runTranscription, runAnalysis } from "@/lib/vault-pipeline";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 600; // 10 min — Whisper + Claude can be slow
+export const maxDuration = 600;
 
 export async function POST(request: NextRequest) {
   // Auth
@@ -54,7 +52,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  // 1. Find or create Meeting
+  // Find or create Meeting
   let meeting = await prisma.meeting.findFirst({
     where: { driveFileId },
   });
@@ -75,11 +73,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 2. Idempotency: if already READY, return ideas
+  // Idempotency: already READY
   if (meeting.status === "READY") {
     const ideas = await prisma.idea.findMany({
       where: { meetingId: meeting.id },
-      select: { id: true, title: true, feasible: true, estimatedDays: true },
+      select: {
+        id: true,
+        title: true,
+        feasible: true,
+        estimatedDays: true,
+      },
     });
     return NextResponse.json({
       ok: true,
@@ -90,30 +93,27 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  // 3. Build origin URL for internal calls
-  const url = new URL(request.url);
-  const origin = `${url.protocol}//${url.host}`;
-  const cookieHeader = request.headers.get("cookie") ?? "";
-
-  // 4. Run /transcribe (only if not already done)
+  // Run transcription if needed
   if (meeting.status === "UPLOADED" || meeting.status === "FAILED") {
-    console.log(`[process] Triggering /transcribe for ${meeting.id}`);
-    const transcribeResp = await fetch(`${origin}/api/rsl-vault/transcribe`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Cookie: cookieHeader,
-      },
-      body: JSON.stringify({ meetingId: meeting.id }),
-    });
+    // If FAILED, reset to UPLOADED so runTranscription accepts it
+    if (meeting.status === "FAILED") {
+      await prisma.meeting.update({
+        where: { id: meeting.id },
+        data: { status: "UPLOADED", errorMessage: null },
+      });
+    }
 
-    if (!transcribeResp.ok) {
-      const errBody = await transcribeResp.text();
+    console.log(`[process] Starting transcription for ${meeting.id}`);
+    try {
+      await runTranscription(meeting.id, session.email);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : String(error);
       return NextResponse.json(
         {
           error: "Transcription failed",
           stage: "transcribe",
-          details: errBody,
+          details: message,
           meetingId: meeting.id,
         },
         { status: 500 }
@@ -121,36 +121,25 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 5. Run /analyze
-  console.log(`[process] Triggering /analyze for ${meeting.id}`);
-  const analyzeResp = await fetch(`${origin}/api/rsl-vault/analyze`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Cookie: cookieHeader,
-    },
-    body: JSON.stringify({ meetingId: meeting.id }),
-  });
-
-  if (!analyzeResp.ok) {
-    const errBody = await analyzeResp.text();
+  // Run analysis
+  console.log(`[process] Starting analysis for ${meeting.id}`);
+  try {
+    const analysisResult = await runAnalysis(meeting.id);
+    return NextResponse.json({
+      ok: true,
+      // status comes from spread
+      ...analysisResult,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       {
         error: "Analysis failed",
         stage: "analyze",
-        details: errBody,
+        details: message,
         meetingId: meeting.id,
       },
       { status: 500 }
     );
   }
-
-  const analyzeData = await analyzeResp.json();
-
-  return NextResponse.json({
-    ok: true,
-    status: "processed",
-    meetingId: meeting.id,
-    ...analyzeData,
-  });
 }
