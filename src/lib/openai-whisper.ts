@@ -114,7 +114,7 @@ export async function transcribeAudio(
       model,
       language,
       prompt,
-      response_format: 'verbose_json', // includes duration + language detection
+      response_format: 'json', // includes duration + language detection
     });
 
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
