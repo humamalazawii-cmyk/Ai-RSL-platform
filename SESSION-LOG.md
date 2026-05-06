@@ -2116,3 +2116,75 @@ TypeError: fetch failed
 3. الـ Drive لازم يكون متصل (rslai.vault@gmail.com)
 4. سجّل اجتماع Zoom مع علي جلال + رفعه على الـ Drive
 
+
+---
+
+## Session 2026-04-29 (Afternoon) — Major Rebrand + Domain Acquisition
+
+### Key Decisions
+
+**Brand Architecture:**
+- Company (parent):  Rafidain Vision (شركة رؤية الرافدين)
+- Product (first):   RSL — Rafidain Smart Lab (تعديل من "Smart Life")
+- Strategy:          Two separate Next.js apps
+  - rsl-ai.com → ERP (للزبائن)
+  - rafidainvision.com → Corporate + Vault + Investors
+
+**Valuation Methodology:** Hybrid (3 approaches)
+- Conservative (~$230K):  Berkus Method
+- Realistic (~$700K):     MENA-adjusted Scorecard
+- Optimistic (~$2.8M):    VC Method (backwards from exit)
+
+### Domains Acquired (Cloudflare Registrar)
+
+| Domain | Price | Auto-Renew | Expires |
+|--------|-------|------------|---------|
+| rafidainvision.com | $10.46 | ✅ ON | Apr 29, 2027 |
+| rafidainvision.net | $11.86 | ✅ ON | Apr 29, 2027 |
+| rafidainvision.org | $7.50 | ✅ ON | Apr 29, 2027 |
+| **Total** | **$29.82/yr** | | |
+
+- Account: rslai.vault@gmail.com
+- Registrant: Humam (Iraq, Baghdad)
+- WHOIS Privacy: Active (Cloudflare default)
+- ICANN Verification: Not required (email pre-verified)
+
+### Roadmap (مرتّب)
+
+**Phase A (3-4 days):** Build rafidainvision.com infrastructure
+- Cloud Run service: rafidainvision-platform
+- Next.js 14 + Prisma
+- DNS setup + SSL
+- Auth منفصل (passcode للمستثمرين)
+
+**Phase B (2-3 days):** نقل Vault + تحسينات
+- نقل /rsl-vault من ERP app → rafidainvision app
+- Auto-scan (Cloud Scheduler)
+- Email notifications
+
+**Phase B.5 (1-2 days):** Financial Model
+- Excel/Sheets: Customer projections, ARPU, churn, COGS, OPEX
+- Funnel assumptions
+- Source of truth للـ dashboard
+
+**Phase C (5-7 days):** Investor Dashboard
+- Revenue/Profit projections 5Y (Recharts)
+- Marketing funnel visualization
+- Completion progress
+- Valuation cards (3 scenarios)
+- Investor authentication
+
+### Pending (لجلسات قادمة)
+
+- [ ] Day 6: RSL Vault real meeting test (مع علي)
+- [ ] Pricing v3: Internal Modules نقاش (مؤجّل من 2026-04-28)
+- [ ] DNS: ربط rafidainvision.com بالـ app الجديد (Phase A)
+- [ ] Email setup: info@rafidainvision.com (لاحقاً)
+
+### Critical Discoveries
+
+- "RSL" اسم محتل عالمياً — Rafidain Vision أقوى للـ corporate brand
+- Cloudflare Auto-renew تلقائي رغم نص الإيميل المضلّل
+- Iraqi market valuation: تجنّب Silicon Valley benchmarks
+- Brand protection: 3 domains TLD = essential ($30/yr investment)
+
